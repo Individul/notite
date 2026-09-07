@@ -18,7 +18,7 @@ export function eroare(status: number, mesaj: string, extra: Record<string, unkn
 export async function citesteJson<T>(req: Request): Promise<{ ok: true; date: T } | { ok: false; raspuns: Response }> {
   const tip = req.headers.get("content-type") ?? "";
   if (!/^application\/json\b/i.test(tip)) {
-    return { ok: false, raspuns: eroare(415, "Cererea trebuie sa aiba Content-Type: application/json.") };
+    return { ok: false, raspuns: eroare(415, "Cererea trebuie să aibă Content-Type: application/json.") };
   }
   try {
     return { ok: true, date: (await req.json()) as T };

@@ -25,7 +25,7 @@ export async function identitate(
 ): Promise<Identitate> {
   if (cfg.teamDomain && cfg.aud) {
     const jwt = req.headers.get("Cf-Access-Jwt-Assertion");
-    if (!jwt) return { ok: false, status: 403, mesaj: "Acces interzis: lipseste Cloudflare Access." };
+    if (!jwt) return { ok: false, status: 403, mesaj: "Acces interzis: lipsește Cloudflare Access." };
     const v = await verifica(jwt, cfg.teamDomain, cfg.aud);
     if (!v.ok) return { ok: false, status: 403, mesaj: `Acces interzis: ${v.motiv}.` };
     return { ok: true, email: v.email.trim().toLowerCase() };
@@ -33,6 +33,6 @@ export async function identitate(
   if (cfg.devEmail && cfg.dev) return { ok: true, email: cfg.devEmail.trim().toLowerCase() };
   return {
     ok: false, status: 503,
-    mesaj: "Cloudflare Access nu este configurat. Seteaza ACCESS_TEAM_DOMAIN si ACCESS_AUD pe Worker.",
+    mesaj: "Cloudflare Access nu este configurat. Setează ACCESS_TEAM_DOMAIN și ACCESS_AUD pe Worker.",
   };
 }
