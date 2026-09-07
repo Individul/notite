@@ -31,6 +31,8 @@ Local, identitatea vine din `DEV_EMAIL` (doar în `astro dev` sau pe `localhost`
 
 ## Configurare Cloudflare (o singură dată)
 
+Stare (7 septembrie 2026): totul de mai jos este făcut. D1 `notite` creat și migrat, Zero Trust Free activat (echipa `wandering-firefly-46cf`), aplicația Access „Notițe” cu politica „Doar eu” și metodele de login One-time PIN + Cloudflare, `ACCESS_TEAM_DOMAIN` în `wrangler.jsonc`, secretul `ACCESS_AUD` pe Worker, aplicația publicată. Pașii rămân aici ca referință pentru o reinstalare.
+
 1. **Baza de date**
 
    ```bash
