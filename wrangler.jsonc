@@ -17,8 +17,7 @@
 		{
 			"binding": "DB",
 			"database_name": "notite",
-			// Se completeaza dupa `npx wrangler d1 create notite`.
-			"database_id": "TODO"
+			"database_id": "b68ea700-bd5d-4681-b94f-d64b26381d78"
 		}
 	],
 	"vars": {
