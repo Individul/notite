@@ -1,0 +1,22 @@
+---
+// Notita unei zile anume. Data invalida -> 404. Ziua de azi -> /, ca sa existe o singura adresa.
+import { env } from "cloudflare:workers";
+import Base from "../../layouts/Base.astro";
+import PaginaZi from "../../components/PaginaZi.astro";
+import { aziChisinau, etichetaZi, ziValida } from "../../lib/data";
+import { notaZi } from "../../lib/db";
+
+const data = Astro.params.data ?? "";
+if (!ziValida(data)) {
+  return new Response("Zi invalidă.\n", {
+    status: 404, headers: { "content-type": "text/plain; charset=utf-8" },
+  });
+}
+if (data === aziChisinau()) return Astro.redirect("/", 302);
+
+const nota = await notaZi(env.DB, Astro.locals.email, data);
+---
+
+<Base title={`${etichetaZi(data)} · Notițe`} zi={data}>
+  <PaginaZi nota={nota} data={data} />
+</Base>

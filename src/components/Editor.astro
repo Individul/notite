@@ -1,0 +1,91 @@
+---
+// Editorul unei notite: titlu (doar notele durabile), textarea, comutator Scrie/Citeste,
+// previzualizare randata pe server (clientul o reface live) si indicatorul de stare.
+// Salvarea automata vine din scripts/editor.ts, care citeste data-id / data-actualizat / data-tip.
+import type { Nota } from "../lib/db";
+import { randeazaMarkdown } from "../lib/markdown";
+
+interface Props {
+  nota: Nota;
+}
+const { nota } = Astro.props;
+---
+
+<section class="editor" data-id={nota.id} data-actualizat={nota.actualizat_la} data-tip={nota.tip}>
+  {nota.tip === "nota" && (
+    <input
+      class="titlu" name="titlu" type="text" value={nota.titlu ?? ""}
+      placeholder="Titlu" maxlength="200" autocomplete="off" aria-label="Titlul notiței"
+    />
+  )}
+  <div class="unelte">
+    <div class="moduri" role="group" aria-label="Mod">
+      <button type="button" class="mod activ" data-mod="scrie" aria-pressed="true">Scrie</button>
+      <button type="button" class="mod" data-mod="citeste" aria-pressed="false">Citește</button>
+    </div>
+    <span id="stare" class="stare" aria-live="polite">salvat</span>
+  </div>
+  <div id="banner" class="banner" hidden></div>
+  <textarea
+    class="corp" name="corp" placeholder="Scrie aici…"
+    autocapitalize="sentences" spellcheck="true" aria-label="Textul notiței"
+  >{nota.corp}</textarea>
+  <div id="previzualizare" class="previzualizare markdown" hidden set:html={randeazaMarkdown(nota.corp)} />
+  <slot />
+</section>
+
+<style>
+  .editor { display: flex; flex-direction: column; gap: 10px; }
+  .titlu {
+    font: inherit; font-family: var(--display); font-weight: 600; font-size: 28px; letter-spacing: -0.01em;
+    padding: 6px 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text);
+    outline: none; width: 100%;
+  }
+  .titlu::placeholder { color: var(--faint); }
+  .titlu:focus { border-bottom-color: var(--violet); }
+  .unelte { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .moduri { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; }
+  .mod {
+    padding: 4px 12px; border: 0; border-radius: 999px; background: transparent;
+    color: var(--muted); font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .mod.activ { background: rgba(179, 147, 242, 0.18); color: var(--violet); }
+  .stare { font-size: 13px; font-weight: 600; color: var(--faint); }
+  .stare.atentie { color: var(--wip); }
+  .stare.problema { color: var(--coral); }
+  .banner {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 10px 14px; border: 1px solid rgba(242, 194, 91, 0.4); border-radius: 12px;
+    background: rgba(242, 194, 91, 0.08); font-size: 14px;
+  }
+  .corp {
+    font: inherit; font-size: 17px; line-height: 1.6; color: var(--text);
+    width: 100%; min-height: 50vh; padding: 4px 0; border: 0; background: transparent;
+    resize: none; outline: none; field-sizing: content;
+  }
+  .corp::placeholder { color: var(--faint); }
+</style>
+
+<style is:global>
+  /* Textul randat (previzualizare, cautare). Global, ca sa se aplice si pe HTML-ul din set:html. */
+  .markdown { font-size: 17px; line-height: 1.6; padding: 4px 0; }
+  .markdown > :first-child { margin-top: 0; }
+  .markdown h1, .markdown h2, .markdown h3 {
+    font-family: var(--display); font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; margin: 1.2em 0 0.4em;
+  }
+  .markdown h1 { font-size: 28px; }
+  .markdown h2 { font-size: 22px; }
+  .markdown h3 { font-size: 18px; }
+  .markdown p { margin: 0 0 1em; }
+  .markdown ul, .markdown ol { margin: 0 0 1em; padding-left: 1.4em; }
+  .markdown li { margin: 0.2em 0; }
+  .markdown a { color: var(--teal); text-decoration: underline; text-underline-offset: 3px; }
+  .markdown code { font-family: var(--mono); font-size: 0.9em; background: var(--line); padding: 1px 5px; border-radius: 5px; }
+  .markdown pre {
+    margin: 0 0 1em; padding: 12px 14px; border-radius: 12px; background: var(--bg-2); overflow-x: auto;
+    font-family: var(--mono); font-size: 14px; line-height: 1.5;
+  }
+  .markdown pre code { background: transparent; padding: 0; font-size: inherit; }
+  .markdown strong { font-weight: 600; color: var(--text); }
+  .markdown:empty::before { content: "Nimic de citit încă."; color: var(--faint); }
+</style>

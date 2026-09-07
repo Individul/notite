@@ -1,10 +1,16 @@
 ---
-// Placeholder; se inlocuieste cu notita de azi.
+// Primul ecran: notita de azi (fusul Chisinau), creata la cerere. Fara redirect, ca
+// start_url din manifest sa deschida mereu ziua curenta.
+import { env } from "cloudflare:workers";
 import Base from "../layouts/Base.astro";
+import PaginaZi from "../components/PaginaZi.astro";
 import { aziChisinau } from "../lib/data";
+import { notaZi } from "../lib/db";
+
 const azi = aziChisinau();
+const nota = await notaZi(env.DB, Astro.locals.email, azi);
 ---
 
-<Base title="Notițe" zi={azi}>
-  <h1>Notițe</h1>
+<Base title="Azi · Notițe" zi={azi}>
+  <PaginaZi nota={nota} data={azi} />
 </Base>

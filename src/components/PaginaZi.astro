@@ -1,0 +1,31 @@
+---
+// Notita unei zile: antet (Azi / Ieri / Maine / ziua saptamanii + data lunga) si editorul.
+import type { Nota } from "../lib/db";
+import { etichetaZi, fmtZi } from "../lib/data";
+import Editor from "./Editor.astro";
+
+interface Props {
+  nota: Nota;
+  data: string;
+}
+const { nota, data } = Astro.props;
+---
+
+<header class="antet-zi">
+  <p class="eticheta">{etichetaZi(data)}</p>
+  <h1>{fmtZi(data)}</h1>
+</header>
+<Editor nota={nota} />
+
+<style>
+  .antet-zi { margin-bottom: 18px; }
+  .eticheta {
+    margin: 0 0 4px; font-size: 13px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--violet);
+  }
+  h1 {
+    margin: 0; font-family: var(--display); font-weight: 600; font-size: 28px;
+    letter-spacing: -0.01em; line-height: 1.15;
+  }
+  h1::first-letter { text-transform: uppercase; }
+</style>

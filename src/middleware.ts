@@ -26,5 +26,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     });
   }
   context.locals.email = r.email;
-  return next();
+  const raspuns = await next();
+  // Continut personal: nimic nu se pune in cache-uri intermediare sau in browser.
+  try { raspuns.headers.set("cache-control", "no-store"); } catch { /* antete imutabile (ex. assets) */ }
+  return raspuns;
 });
