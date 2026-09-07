@@ -1,0 +1,2 @@
+# Copiaza in .dev.vars (niciodata comis). Identitatea folosita local, in lipsa Cloudflare Access.
+DEV_EMAIL=dev@local
