@@ -1,0 +1,28 @@
+---
+// O notita durabila: titlu + text, cu stergere. 404 daca nu exista sau nu e a ownerului.
+import { env } from "cloudflare:workers";
+import Base from "../../layouts/Base.astro";
+import Editor from "../../components/Editor.astro";
+import { citesteNota } from "../../lib/db";
+
+const nota = await citesteNota(env.DB, Astro.locals.email, Astro.params.id ?? "");
+if (!nota) {
+  return new Response("Notița nu există.\n", {
+    status: 404, headers: { "content-type": "text/plain; charset=utf-8" },
+  });
+}
+// Notitele de zi au adresa lor.
+if (nota.tip === "zi" && nota.data_zi) return Astro.redirect(`/zi/${nota.data_zi}`, 302);
+---
+
+<Base title={`${nota.titlu || "(fără titlu)"} · Notițe`}>
+  <Editor nota={nota} focus>
+    <div class="actiuni">
+      <button type="button" class="buton periculos sterge">Șterge notița</button>
+    </div>
+  </Editor>
+</Base>
+
+<style>
+  .actiuni { display: flex; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
+</style>

@@ -240,9 +240,14 @@ function porneste(el: HTMLElement) {
 
   creste();
   if (el.dataset.focus === "1") {
-    const n = corp.value.length;
-    corp.focus({ preventScroll: true });
-    corp.setSelectionRange(n, n);
+    if (titlu && !titlu.value) {
+      // Nota noua: incepem cu titlul.
+      titlu.focus({ preventScroll: true });
+    } else {
+      const n = corp.value.length;
+      corp.focus({ preventScroll: true });
+      corp.setSelectionRange(n, n);
+    }
   }
 }
 
