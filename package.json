@@ -16,7 +16,8 @@
     "migrate:local": "wrangler d1 migrations apply notite --local",
     "migrate:remote": "wrangler d1 migrations apply notite --remote",
     "deploy": "astro build && wrangler deploy",
-    "generate-types": "wrangler types"
+    "generate-types": "wrangler types",
+    "dev:worker": "astro build && wrangler dev --local-upstream localhost"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.0",

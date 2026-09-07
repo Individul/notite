@@ -1,15 +1,10 @@
 ---
 // Placeholder; se inlocuieste cu notita de azi.
+import Base from "../layouts/Base.astro";
+import { aziChisinau } from "../lib/data";
+const azi = aziChisinau();
 ---
 
-<!doctype html>
-<html lang="ro">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Notițe</title>
-  </head>
-  <body>
-    <h1>Notițe</h1>
-  </body>
-</html>
+<Base title="Notițe" zi={azi}>
+  <h1>Notițe</h1>
+</Base>

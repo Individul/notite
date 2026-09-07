@@ -1,0 +1,54 @@
+---
+// Bara de sus: brand, navigare pe zile si cautare. `zi` e data paginii curente (daca e o zi).
+import { aziChisinau, ziVecina } from "../lib/data";
+
+interface Props {
+  zi?: string;
+}
+const { zi } = Astro.props;
+const azi = aziChisinau();
+const q = Astro.url.searchParams.get("q") ?? "";
+const peAzi = zi === azi;
+---
+
+<header class="bara">
+  <a class="brand" href="/">Notițe<span>.</span></a>
+  <nav class="zile" aria-label="Navigare pe zile">
+    {zi && <a href={`/zi/${ziVecina(zi, -1)}`} title="Ziua anterioară" aria-label="Ziua anterioară">←</a>}
+    <a href="/" class:list={["azi", { activ: peAzi }]}>Azi</a>
+    {zi && <a href={`/zi/${ziVecina(zi, 1)}`} title="Ziua următoare" aria-label="Ziua următoare">→</a>}
+  </nav>
+  <form class="cauta" action="/cautare" method="get" role="search">
+    <input type="search" name="q" value={q} placeholder="caută…" aria-label="Caută în notițe" autocomplete="off" />
+  </form>
+</header>
+
+<style>
+  .bara {
+    display: flex; align-items: center; gap: 16px;
+    height: 60px; padding: 0 20px; border-bottom: 1px solid var(--line);
+  }
+  .brand { font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: -0.01em; }
+  .brand span { color: var(--violet); }
+  .zile { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+  .zile a {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 36px; height: 36px; padding: 0 10px; border-radius: 10px;
+    font-weight: 600; font-size: 14px; color: var(--muted);
+  }
+  .zile a:hover { color: var(--text); background: var(--line); }
+  .zile a.activ { color: var(--violet); }
+  .cauta { display: flex; }
+  .cauta input {
+    width: 160px; font: inherit; font-size: 14px; padding: 7px 12px;
+    border: 1px solid var(--line); border-radius: 999px; background: transparent;
+    color: var(--text); outline: none; transition: border-color 0.15s, width 0.15s;
+  }
+  .cauta input::placeholder { color: var(--faint); }
+  .cauta input:focus { border-color: var(--violet); width: 220px; }
+  @media (max-width: 560px) {
+    .bara { gap: 10px; padding: 0 14px; }
+    .cauta input { width: 110px; }
+    .cauta input:focus { width: 140px; }
+  }
+</style>

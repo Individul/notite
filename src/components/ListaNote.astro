@@ -1,0 +1,96 @@
+---
+// Lista laterala: notita noua, notitele durabile, zilele recente nevide.
+// Coloana la >= 900px; sub, un <details> pliabil, fara JavaScript.
+import { env } from "cloudflare:workers";
+import { listeazaNote, zileRecente } from "../lib/db";
+import { aziChisinau, etichetaZi, fmtZi } from "../lib/data";
+
+const email = Astro.locals.email;
+const [note, zile] = await Promise.all([listeazaNote(env.DB, email), zileRecente(env.DB, email)]);
+const azi = aziChisinau();
+const cale = Astro.url.pathname;
+const scurt = (s: string) => s.replace(/\s+/g, " ").trim();
+---
+
+<aside class="lateral">
+  <input type="checkbox" id="lista-pliata" class="pliaza" />
+  <label for="lista-pliata" class="pliaza-eticheta">Notițe și zile</label>
+  <div class="lista">
+      <form method="post" action="/n/noua" class="noua">
+        <button type="submit" class="buton">+ Notiță nouă</button>
+      </form>
+
+      <section>
+        <h2>Notițe</h2>
+        {note.length === 0 && <p class="gol">Nicio notiță durabilă încă.</p>}
+        <ul>
+          {note.map((n) => (
+            <li>
+              <a href={`/n/${n.id}`} class:list={{ activ: cale === `/n/${n.id}` }}>
+                <span class="titlu">{n.titlu || "(fără titlu)"}</span>
+                {scurt(n.rezumat) && <span class="rezumat">{scurt(n.rezumat)}</span>}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h2>Zile</h2>
+        {zile.length === 0 && <p class="gol">Nicio zi scrisă încă.</p>}
+        <ul>
+          {zile.map((z) => (
+            <li>
+              <a href={z.data_zi === azi ? "/" : `/zi/${z.data_zi}`} class:list={{ activ: cale === `/zi/${z.data_zi}` || (cale === "/" && z.data_zi === azi) }}>
+                <span class="titlu">{etichetaZi(z.data_zi, azi)} <small>{fmtZi(z.data_zi)}</small></span>
+                {scurt(z.rezumat) && <span class="rezumat">{scurt(z.rezumat)}</span>}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+  </div>
+</aside>
+
+<style>
+  .lateral { border-bottom: 1px solid var(--line); }
+  /* Pliere fara JavaScript: checkbox ascuns + label. Pe desktop lista e mereu vizibila. */
+  .pliaza { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+  .pliaza-eticheta {
+    display: block; cursor: pointer; padding: 12px 20px; user-select: none;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+  }
+  .pliaza-eticheta::before { content: "▸ "; color: var(--violet); }
+  .pliaza:checked ~ .pliaza-eticheta::before { content: "▾ "; }
+  .pliaza:focus-visible ~ .pliaza-eticheta { outline: 2px solid var(--coral); outline-offset: -2px; }
+  .lista { display: none; padding: 0 20px 20px; }
+  .pliaza:checked ~ .lista { display: block; }
+  .noua { margin: 4px 0 20px; }
+  h2 {
+    margin: 0 0 8px; font-family: var(--body); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint);
+  }
+  section + section { margin-top: 24px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li a {
+    display: block; padding: 8px 10px; margin: 0 -10px; border-radius: 10px;
+  }
+  li a:hover { background: var(--line); }
+  li a.activ { background: rgba(179, 147, 242, 0.12); }
+  .titlu { display: block; font-weight: 600; font-size: 14.5px; line-height: 1.35; }
+  .titlu small { font-weight: 500; font-size: 12.5px; color: var(--muted); margin-left: 4px; }
+  .rezumat {
+    display: block; margin-top: 2px; font-size: 13px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .gol { margin: 0; font-size: 13.5px; color: var(--faint); }
+
+  @media (min-width: 900px) {
+    .lateral {
+      border-bottom: 0; border-right: 1px solid var(--line);
+      position: sticky; top: 0; align-self: start; max-height: 100dvh; overflow-y: auto;
+    }
+    .pliaza-eticheta { display: none; }
+    .lista { display: block; padding: 24px 20px 32px; }
+  }
+</style>

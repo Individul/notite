@@ -20,7 +20,9 @@ astro dev --background
 
 Manage the background server with `astro dev stop`, `astro dev status`, and `astro dev logs`.
 
-Teste: `npm test`. Verificare tipuri: `npm run check`. Apropiat de producție: `npm run build && npx wrangler dev`.
+Teste: `npm test`. Verificare tipuri: `npm run check`. Apropiat de producție: `npm run dev:worker` (build + `wrangler dev --local-upstream localhost`; fără `--local-upstream`, wrangler pune hostname-ul domeniului custom și middleware-ul nu mai recunoaște mediul local, deci răspunde 503).
+
+Cunoscut: cu Astro 7.3 + adaptorul Cloudflare 14.3, `astro dev` servește uneori paginile fără `<style>` și fără `/@vite/client` (rulează în workerd și pierde mediul de dev la pornire rece sau după „program reload”). Rutele, middleware-ul și API-ul merg corect. Pentru verificări vizuale folosește `npm run dev:worker` (port 8787), care servește build-ul real.
 
 ## Documentation
 

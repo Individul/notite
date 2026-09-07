@@ -1,0 +1,110 @@
+---
+// Scheletul fiecarei pagini: antet, lista laterala, continut, subsol.
+// Paleta si fonturile sunt cele din portofoliu (dumitru.cloud).
+// Manifestul are crossorigin="use-credentials": Access cere cookie-ul de sesiune si la
+// manifest, iar fetch-ul implicit al browserului nu il trimite.
+import Bara from "../components/Bara.astro";
+import ListaNote from "../components/ListaNote.astro";
+
+interface Props {
+  title: string;
+  zi?: string;
+}
+const { title, zi } = Astro.props;
+const email = Astro.locals.email;
+---
+
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#16121D" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Notițe" />
+    <title>{title}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Manrope:wght@400;500;600&display=swap" />
+    <style is:global>
+      :root {
+        --bg: #16121D;
+        --bg-2: #1E1927;
+        --text: #F4EFF8;
+        --text-2: #C9C0D6;
+        --muted: #A99FB8;
+        --faint: #6E6580;
+        --line: rgba(244, 239, 248, 0.10);
+        --coral: #F4876A;
+        --teal: #4EC5BE;
+        --violet: #B393F2;
+        --live: #6FE3A5;
+        --wip: #F2C25B;
+        --display: 'Outfit', 'Avenir Next', 'Segoe UI', sans-serif;
+        --body: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+        --mono: ui-monospace, 'Cascadia Mono', 'Consolas', monospace;
+      }
+      * { box-sizing: border-box; }
+      html { color-scheme: dark; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--body);
+        font-size: 16px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+      }
+      a { color: inherit; text-decoration: none; }
+      a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+        outline: 2px solid var(--coral); outline-offset: 2px; border-radius: 6px;
+      }
+      button { font: inherit; }
+      mark { background: rgba(179, 147, 242, 0.35); color: inherit; padding: 0 2px; border-radius: 3px; }
+
+      /* Tablou: lista laterala + continut */
+      .tablou { flex: 1; display: grid; grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      .continut { min-width: 0; padding: 24px 20px 48px; max-width: 760px; width: 100%; margin: 0 auto; }
+      @media (min-width: 900px) {
+        .tablou { grid-template-columns: 300px minmax(0, 1fr); grid-template-rows: 1fr; }
+        .continut { padding: 32px 40px 64px; }
+      }
+
+      .subsol {
+        padding: 14px 20px; border-top: 1px solid var(--line);
+        font-size: 12.5px; font-weight: 600; color: var(--faint);
+        display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      }
+
+      /* Butoane */
+      .buton {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line);
+        background: transparent; color: var(--text-2); font-weight: 600; font-size: 14px; cursor: pointer;
+      }
+      .buton:hover { border-color: var(--violet); color: var(--violet); }
+      .buton.periculos:hover { border-color: var(--coral); color: var(--coral); }
+    </style>
+  </head>
+  <body>
+    <Bara zi={zi} />
+    <div class="tablou">
+      <ListaNote />
+      <main class="continut">
+        <slot />
+      </main>
+    </div>
+    <footer class="subsol">
+      <span>conectat ca {email}</span>
+      <a href="https://dumitru.cloud">dumitru.cloud</a>
+    </footer>
+  </body>
+</html>
