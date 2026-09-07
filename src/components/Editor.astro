@@ -7,11 +7,13 @@ import { randeazaMarkdown } from "../lib/markdown";
 
 interface Props {
   nota: Nota;
+  // Pune cursorul la sfarsitul textului la incarcare (pagina de azi).
+  focus?: boolean;
 }
-const { nota } = Astro.props;
+const { nota, focus = false } = Astro.props;
 ---
 
-<section class="editor" data-id={nota.id} data-actualizat={nota.actualizat_la} data-tip={nota.tip}>
+<section class="editor" data-id={nota.id} data-actualizat={nota.actualizat_la} data-tip={nota.tip} data-focus={focus ? "1" : undefined}>
   {nota.tip === "nota" && (
     <input
       class="titlu" name="titlu" type="text" value={nota.titlu ?? ""}
@@ -33,6 +35,10 @@ const { nota } = Astro.props;
   <div id="previzualizare" class="previzualizare markdown" hidden set:html={randeazaMarkdown(nota.corp)} />
   <slot />
 </section>
+
+<script>
+  import "../scripts/editor";
+</script>
 
 <style>
   .editor { display: flex; flex-direction: column; gap: 10px; }
