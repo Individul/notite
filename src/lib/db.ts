@@ -38,8 +38,8 @@ export type RezultatActualizare =
   | { ok: false; motiv: "conflict"; nota: Nota };
 
 // Markerele din fragmentul FTS; cautare.ts le transforma in <mark>, dupa escapare.
-export const MARCAJ_START = "";
-export const MARCAJ_STOP = "";
+export const MARCAJ_START = String.fromCharCode(1);
+export const MARCAJ_STOP = String.fromCharCode(2);
 
 const COLOANE = "id, tip, data_zi, titlu, corp, creat_la, actualizat_la";
 
