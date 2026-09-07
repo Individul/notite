@@ -23,7 +23,7 @@
 	"vars": {
 		// Echipa Cloudflare Access, ex. "echipa.cloudflareaccess.com". Se completeaza la instalare.
 		// ACCESS_AUD e secret: `npx wrangler secret put ACCESS_AUD`. DEV_EMAIL nu se pune NICIODATA aici.
-		"ACCESS_TEAM_DOMAIN": ""
+		"ACCESS_TEAM_DOMAIN": "wandering-firefly-46cf.cloudflareaccess.com"
 	},
 	"observability": {
 		"enabled": true
