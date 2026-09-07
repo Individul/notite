@@ -1,0 +1,59 @@
+---
+// Cautare full-text (FTS5) in notitele ownerului. ?q= gol -> text de indrumare, fara interogare.
+import { env } from "cloudflare:workers";
+import Base from "../layouts/Base.astro";
+import { cauta } from "../lib/db";
+import { fragmentHtml, pregatesteInterogare } from "../lib/cautare";
+import { etichetaZi, fmtZi } from "../lib/data";
+
+const q = (Astro.url.searchParams.get("q") ?? "").trim();
+const interogare = pregatesteInterogare(q);
+const rezultate = interogare ? await cauta(env.DB, Astro.locals.email, interogare) : [];
+
+const titluRezultat = (r: (typeof rezultate)[number]) =>
+  r.tip === "zi" && r.data_zi ? `${etichetaZi(r.data_zi)} · ${fmtZi(r.data_zi)}` : r.titlu || "(fără titlu)";
+const adresa = (r: (typeof rezultate)[number]) => (r.tip === "zi" ? `/zi/${r.data_zi}` : `/n/${r.id}`);
+---
+
+<Base title={q ? `„${q}” · Căutare` : "Căutare · Notițe"}>
+  <header class="antet">
+    <p class="eticheta">Căutare</p>
+    <h1>{q ? `„${q}”` : "Caută în notițe"}</h1>
+  </header>
+
+  {!interogare && (
+    <p class="indrumare">
+      Scrie un cuvânt în caseta de sus. Căutarea ignoră diacriticele și găsește și începuturi de cuvinte.
+    </p>
+  )}
+  {interogare && rezultate.length === 0 && <p class="gol">Niciun rezultat pentru „{q}”.</p>}
+
+  {rezultate.length > 0 && (
+    <ul class="rezultate">
+      {rezultate.map((r) => (
+        <li>
+          <a href={adresa(r)}>
+            <span class="titlu">{titluRezultat(r)}</span>
+            <span class="fragment" set:html={fragmentHtml(r.fragment)} />
+          </a>
+        </li>
+      ))}
+    </ul>
+  )}
+</Base>
+
+<style>
+  .antet { margin-bottom: 18px; }
+  .eticheta {
+    margin: 0 0 4px; font-size: 13px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--violet);
+  }
+  h1 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 28px; letter-spacing: -0.01em; line-height: 1.15; }
+  .indrumare, .gol { color: var(--muted); font-size: 16px; line-height: 1.6; }
+  .rezultate { list-style: none; margin: 0; padding: 0; }
+  .rezultate li { border-bottom: 1px solid var(--line); }
+  .rezultate a { display: block; padding: 14px 10px; margin: 0 -10px; border-radius: 12px; }
+  .rezultate a:hover { background: var(--line); }
+  .titlu { display: block; font-weight: 600; font-size: 16px; }
+  .fragment { display: block; margin-top: 4px; color: var(--muted); font-size: 15px; line-height: 1.5; }
+</style>
