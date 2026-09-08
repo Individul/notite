@@ -56,7 +56,7 @@ const { nota, focus = false } = Astro.props;
         </svg>
       </button>
     </div>
-    <span id="stare" class="stare" aria-live="polite">salvat</span>
+    <span id="stare" class="stare" aria-live="polite">se încarcă…</span>
   </div>
   <div id="banner" class="banner" hidden></div>
   <textarea
@@ -69,6 +69,19 @@ const { nota, focus = false } = Astro.props;
 
 <script>
   import "../scripts/editor";
+</script>
+
+<script is:inline>
+  // Paznic: daca modulul editorului nu ajunge (404, retea proasta, JavaScript oprit),
+  // nimic nu se salveaza. Indicatorul trebuie sa spuna asta, nu sa taca. Scriptul e inline
+  // dinadins — unul extern ar cadea exact in situatia pe care o pazeste.
+  setTimeout(function () {
+    var editor = document.querySelector("section.editor");
+    var stare = document.getElementById("stare");
+    if (!editor || !stare || editor.dataset.pornit === "1") return;
+    stare.textContent = "editorul nu s-a încărcat — nu se salvează";
+    stare.className = "stare problema";
+  }, 8000);
 </script>
 
 <style>

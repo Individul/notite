@@ -27,6 +27,7 @@ npx astro dev --background        # http://localhost:4321
 - `npm test` rulează testele (vitest în workerd, cu un D1 local real și migrațiile aplicate).
 - `npm run check` verifică tipurile.
 - `npm run dev:worker` construiește și pornește `wrangler dev` pe build (http://localhost:8787), cel mai aproape de producție. Folosește același D1 local din `.wrangler/state/v3`.
+- `npm run dev:retea` e același lucru, dar ascultă pe toate interfețele, ca să deschizi aplicația de pe telefon, de pe același Wi-Fi (`http://<ip-ul-calculatorului>:8787`). Cât rulează, oricine din rețea vede notițele locale cu identitatea `DEV_EMAIL`, deci pornește-l doar când ai nevoie.
 
 Local, identitatea vine din `DEV_EMAIL` (doar în `astro dev` sau pe `localhost`). Dacă setezi `ACCESS_TEAM_DOMAIN` și `ACCESS_AUD`, Access are prioritate și local.
 

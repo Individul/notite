@@ -20,6 +20,8 @@ astro dev --background
 
 Manage the background server with `astro dev stop`, `astro dev status`, and `astro dev logs`.
 
+Pentru proba pe telefon: `npm run dev:retea` (acelasi lucru plus `--ip 0.0.0.0`). Middleware-ul ramane multumit fiindca `--local-upstream localhost` pune oricum `localhost` in URL, deci nu trebuie slabita poarta de identitate. Cat ruleaza, notitele locale sunt vizibile oricui din retea.
+
 Teste: `npm test`. Verificare tipuri: `npm run check`. Apropiat de producție: `npm run dev:worker` (build + `wrangler dev --local-upstream localhost`; fără `--local-upstream`, wrangler pune hostname-ul domeniului custom și middleware-ul nu mai recunoaște mediul local, deci răspunde 503).
 
 Capcana: `wrangler dev` isi face lista de assets o singura data, la pornire, din `dist`. Daca rulezi `npm run build` cat timp serverul merge, `dist` e sters si refacut, iar serverul raspunde 404 la CSS si la JavaScript — chiar si cand numele fisierelor raman aceleasi. Vezi aplicatia complet nestilizata, iar fara JavaScript nu merge nici salvarea automata, desi indicatorul zice mai departe „salvat”. Nu e bug-ul de mai jos: reporneste `npm run dev:worker`.
