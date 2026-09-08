@@ -1,7 +1,10 @@
 ---
-// Calendarul, ca o coloana in dreapta, nu ca un panou peste notita. Cat e deschis sta
-// langa text si nu-l acopera: sari din zi in zi si vezi pe loc ce ai planificat pentru
-// fiecare, ca sa stii daca mai incape ceva acolo.
+// Calendarul: un panou langa butonul care il deschide, deci la indemana cursorului.
+// Cand ecranul e destul de lat se aseaza in marginea libera din dreapta textului, ca sa
+// nu acopere notita; pe ecrane mai inguste cade sub buton, unde n-are incotro.
+//
+// Cat e deschis poti sari din zi in zi si vedea pe loc ce ai planificat pentru fiecare,
+// ca sa stii daca mai incape ceva acolo.
 //
 // Starea „deschis" traieste in adresa (`?luna=`), iar zilele si sagetile sunt linkuri
 // obisnuite care o duc mai departe. Deci panoul ramane deschis dupa ce alegi o zi si
@@ -61,14 +64,12 @@ const adresaLuna = (l: string) => `${Astro.url.pathname}?luna=${l}`;
   // Fara JavaScript panoul ramane deschis pana apesi butonul din antet — tot o cale buna.
   (function () {
     var panou = document.querySelector("aside.panou");
-    var tablou = document.querySelector(".tablou");
     if (!panou) return;
     document.addEventListener("click", function (e) {
       var t = e.target;
       if (!(t instanceof Element)) return;
       if (panou.contains(t) || t.closest(".comuta-calendar")) return;
       panou.hidden = true;
-      if (tablou) tablou.classList.remove("cu-calendar");
       var u = new URL(location.href);
       u.searchParams.delete("luna");
       history.replaceState(null, "", u.pathname + u.search);
@@ -85,17 +86,27 @@ const adresaLuna = (l: string) => `${Astro.url.pathname}?luna=${l}`;
 </script>
 
 <style is:global>
-  /* Global fiindca asezarea coloanei o hotaraste tabloul din Base.astro. */
+  /* Global fiindca ancora panoului sta in antetul zilei (PaginaZi.astro). */
   .panou {
-    padding: 16px 18px 20px;
-    border-top: 1px solid var(--line);
+    position: absolute; z-index: 30; width: 292px; padding: 14px;
+    top: calc(100% + 8px); right: 0;
+    border: 1px solid var(--line); border-radius: 16px;
+    background: var(--bg-2); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
   }
-  .panou .cap { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-  .panou .cap strong { font-family: var(--display); font-size: 15px; font-weight: 600; color: var(--text); }
+  /* De aici incolo, marginea din dreapta textului e destul de lata cat sa tina panoul:
+     il mutam langa buton, ca sa ramana la indemana cursorului fara sa acopere notita.
+     Pragul iese din 300px lista + 760px continut + panoul si spatiul lui, de doua ori,
+     fiindca `.continut` e centrat in coloana lui. */
+  @media (min-width: 1680px) {
+    .panou { top: -8px; left: calc(100% + 18px); right: auto; }
+  }
+
+  .panou .cap { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .panou .cap strong { font-family: var(--display); font-size: 14.5px; font-weight: 600; color: var(--text); }
   .panou .cap strong::first-letter { text-transform: uppercase; }
   .panou .cap a {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px; border-radius: 9px; color: var(--muted); font-size: 15px;
+    width: 28px; height: 28px; border-radius: 9px; color: var(--muted); font-size: 15px;
   }
   .panou .cap a:hover { background: var(--line); color: var(--text); }
 
@@ -106,8 +117,8 @@ const adresaLuna = (l: string) => `${Astro.url.pathname}?luna=${l}`;
   }
   .panou .zi {
     position: relative; display: flex; align-items: center; justify-content: center;
-    height: 34px; padding-bottom: 3px; border-radius: 10px;
-    font-size: 13.5px; font-weight: 600; color: var(--text-2);
+    height: 33px; padding-bottom: 3px; border-radius: 10px;
+    font-size: 13px; font-weight: 600; color: var(--text-2);
   }
   .panou .zi:hover { background: var(--line); color: var(--text); }
   .panou .zi.alta-luna { color: var(--faint); font-weight: 500; }
@@ -119,11 +130,4 @@ const adresaLuna = (l: string) => `${Astro.url.pathname}?luna=${l}`;
     width: 4px; height: 4px; border-radius: 50%; background: var(--violet);
   }
   .panou .zi.alta-luna.scrisa::after { background: var(--faint); }
-
-  @media (min-width: 900px) {
-    .panou {
-      border-top: 0; border-left: 1px solid var(--line);
-      position: sticky; top: 0; align-self: start; max-height: 100dvh; overflow-y: auto;
-    }
-  }
 </style>

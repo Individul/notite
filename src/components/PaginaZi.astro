@@ -3,11 +3,12 @@
 // care deschide calendarul si editorul. Sagetile din bara merg din zi in zi; calendarul
 // sare direct la o data, ca sa poti scrie dinainte pentru o zi oarecare.
 //
-// Calendarul insusi nu e aici: e o coloana in dreapta, randata de Base.astro (vezi
-// Calendar.astro). Butonul doar pune sau scoate `?luna=` din adresa.
+// Calendarul (Calendar.astro) se agata de butonul asta, ca sa fie la indemana cursorului;
+// butonul doar pune sau scoate `?luna=` din adresa, deci deschiderea merge fara JavaScript.
 import type { Nota } from "../lib/db";
 import { etichetaZi, fmtZi } from "../lib/data";
 import { lunaValida, lunaZilei } from "../lib/calendar";
+import Calendar from "./Calendar.astro";
 import Editor from "./Editor.astro";
 
 interface Props {
@@ -16,7 +17,8 @@ interface Props {
 }
 const { nota, data } = Astro.props;
 
-const deschis = lunaValida(Astro.url.searchParams.get("luna") ?? "");
+const luna = Astro.url.searchParams.get("luna") ?? "";
+const deschis = lunaValida(luna);
 const comuta = deschis ? Astro.url.pathname : `${Astro.url.pathname}?luna=${lunaZilei(data)}`;
 ---
 
@@ -26,18 +28,21 @@ const comuta = deschis ? Astro.url.pathname : `${Astro.url.pathname}?luna=${luna
     <h1>{fmtZi(data)}</h1>
   </div>
 
-  <a
-    class="buton comuta-calendar"
-    href={comuta}
-    aria-expanded={deschis ? "true" : "false"}
-    data-luna={lunaZilei(data)}
-  >
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <rect x="2" y="3.2" width="12" height="10.6" rx="2.6" />
-      <path d="M2 6.5h12M5.4 1.8v2.6M10.6 1.8v2.6" />
-    </svg>
-    <span>{deschis ? "Ascunde calendarul" : "Alege ziua"}</span>
-  </a>
+  <div class="ancora">
+    <a
+      class="buton comuta-calendar"
+      href={comuta}
+      aria-expanded={deschis ? "true" : "false"}
+      data-luna={lunaZilei(data)}
+    >
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <rect x="2" y="3.2" width="12" height="10.6" rx="2.6" />
+        <path d="M2 6.5h12M5.4 1.8v2.6M10.6 1.8v2.6" />
+      </svg>
+      <span>{deschis ? "Ascunde calendarul" : "Alege ziua"}</span>
+    </a>
+    {deschis && <Calendar zi={data} luna={luna} />}
+  </div>
 </header>
 
 <Editor nota={nota} focus />
@@ -57,6 +62,8 @@ const comuta = deschis ? Astro.url.pathname : `${Astro.url.pathname}?luna=${luna
   }
   h1::first-letter { text-transform: uppercase; }
 
+  /* Ancora panoului: calendarul se aseaza fata de butonul asta, nu fata de pagina. */
+  .ancora { position: relative; }
   .comuta-calendar { padding: 6px 13px; font-size: 13px; }
   .comuta-calendar svg {
     width: 15px; height: 15px; fill: none; stroke: currentColor;

@@ -2,7 +2,7 @@
 
 Notița de azi și câteva notițe durabile. Scrii, se salvează singur.
 
-Aplicație personală, la [notite.dumitru.cloud](https://notite.dumitru.cloud). Primul ecran este notița zilei curente (fusul Europe/Chișinău); notițele durabile, cu titlu, stau în lista laterală. Săgețile din bară merg din zi în zi, iar „Alege ziua” deschide un calendar în coloana din dreapta, care sare direct la orice zi — inclusiv una viitoare, ca să scrii dinainte. Zilele cu text sunt punctate, iar calendarul rămâne deschis cât treci de la o zi la alta, ca să vezi pe loc ce ai planificat. Căutare full-text în toate, insensibilă la diacritice. Instalabilă ca aplicație pe telefon (PWA).
+Aplicație personală, la [notite.dumitru.cloud](https://notite.dumitru.cloud). Primul ecran este notița zilei curente (fusul Europe/Chișinău); notițele durabile, cu titlu, stau în lista laterală. Săgețile din bară merg din zi în zi, iar „Alege ziua” deschide un calendar lângă buton — pe ecrane late în marginea din dreapta a textului, ca să nu-l acopere — care sare direct la orice zi — inclusiv una viitoare, ca să scrii dinainte. Zilele cu text sunt punctate, iar calendarul rămâne deschis cât treci de la o zi la alta, ca să vezi pe loc ce ai planificat. Căutare full-text în toate, insensibilă la diacritice. Instalabilă ca aplicație pe telefon (PWA).
 
 ## Cum funcționează
 
@@ -90,7 +90,7 @@ src/lib/identitate.ts        cine face cererea: Access JWT | DEV_EMAIL | 503
 src/lib/markdown.ts          escapeHtml (folosit de cautare); randeazaMarkdown a ramas nefolosit
 src/lib/cautare.ts           interogarea FTS si fragmentul cu <mark>
 src/lib/calendar.ts          grila unei luni pentru calendar (saptamana incepe luni)
-src/components/Calendar.astro coloana cu calendarul; starea „deschis” sta in `?luna=`
+src/components/Calendar.astro panoul cu calendarul; starea „deschis” sta in `?luna=`
 src/middleware.ts            identitate pe fiecare cerere, Cache-Control: no-store
 src/pages/                   / (azi), zi/[data], n/[id], n/noua, cautare, api/notite/*
 src/scripts/editor.ts        CodeMirror + salvare automata, ciorne, reincercari, formatare
