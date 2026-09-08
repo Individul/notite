@@ -58,6 +58,46 @@ export function inline(brut: string): string {
     .join("");
 }
 
+// Scoate marcajele dintr-o bucata de text si o escapeaza. Marcajele se scot inainte de
+// escapare, ca tiparele sa vada `*` si `` ` `` asa cum le-a scris omul; escaparea ramane
+// ultima, deci nimic din text nu poate deveni HTML.
+function textSimplu(s: string): string {
+  return escapeHtml(
+    s
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+      .replace(/\*\*(\S(?:.*?\S)?)\*\*/g, "$1")
+      .replace(/\*(\S(?:.*?\S)?)\*/g, "$1")
+      .replace(/(^|[^\p{L}\p{N}_])_(\S(?:.*?\S)?)_(?![\p{L}\p{N}_])/gu, "$1$2")
+  );
+}
+
+// Rezumatul din lista laterala. Acolo se vedea sintaxa bruta (`- [x] ...`), desi in rest
+// se vede rezultatul. Randurile isi pierd marcajele, dar sarcinile isi pastreaza starea:
+// se vede dintr-o privire ce e facut si ce nu.
+export function rezumatHtml(brut: string): string {
+  const bucati: string[] = [];
+  for (const linie of brut.replace(/\r\n?/g, "\n").split("\n")) {
+    const t = linie.trim();
+    if (!t) continue;
+
+    const sarcina = t.match(/^(?:[-*]|\d+\.)\s+\[([ xX])\](?:\s+(.*))?$/);
+    if (sarcina) {
+      const gata = (sarcina[1] ?? " ") !== " ";
+      bucati.push(`<i class="bifa${gata ? " gata" : ""}"></i>${textSimplu(sarcina[2] ?? "")}`);
+      continue;
+    }
+    const element = t.match(/^(?:[-*]|\d+\.)\s+(.*)$/);
+    if (element) {
+      bucati.push(`<i class="pct"></i>${textSimplu(element[1] ?? "")}`);
+      continue;
+    }
+    const titlu = t.match(/^#{1,3}\s+(.*)$/);
+    bucati.push(textSimplu(titlu ? titlu[1] ?? "" : t));
+  }
+  return bucati.join(" ");
+}
+
 // Marcajul de sarcina dintr-un element de lista: `[ ] rest` sau `[x] rest`.
 const SARCINA = /^\[([ xX])\](?:\s+(.*))?$/;
 // Aceleasi inceputuri de element ca in randare, pentru comutarea bifei.

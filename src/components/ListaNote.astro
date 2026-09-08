@@ -3,13 +3,13 @@
 // Coloana la >= 900px; sub, un <details> pliabil, fara JavaScript.
 import { env } from "cloudflare:workers";
 import { listeazaNote, zileRecente } from "../lib/db";
+import { rezumatHtml } from "../lib/markdown";
 import { aziChisinau, etichetaZi, fmtZi } from "../lib/data";
 
 const email = Astro.locals.email;
 const [note, zile] = await Promise.all([listeazaNote(env.DB, email), zileRecente(env.DB, email)]);
 const azi = aziChisinau();
 const cale = Astro.url.pathname;
-const scurt = (s: string) => s.replace(/\s+/g, " ").trim();
 ---
 
 <aside class="lateral">
@@ -24,14 +24,17 @@ const scurt = (s: string) => s.replace(/\s+/g, " ").trim();
         <h2>Notițe</h2>
         {note.length === 0 && <p class="gol">Nicio notiță durabilă încă.</p>}
         <ul>
-          {note.map((n) => (
-            <li>
-              <a href={`/n/${n.id}`} class:list={{ activ: cale === `/n/${n.id}` }}>
-                <span class="titlu">{n.titlu || "(fără titlu)"}</span>
-                {scurt(n.rezumat) && <span class="rezumat">{scurt(n.rezumat)}</span>}
-              </a>
-            </li>
-          ))}
+          {note.map((n) => {
+            const rez = rezumatHtml(n.rezumat);
+            return (
+              <li>
+                <a href={`/n/${n.id}`} class:list={{ activ: cale === `/n/${n.id}` }}>
+                  <span class="titlu">{n.titlu || "(fără titlu)"}</span>
+                  {rez && <span class="rezumat" set:html={rez} />}
+                </a>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -39,14 +42,17 @@ const scurt = (s: string) => s.replace(/\s+/g, " ").trim();
         <h2>Zile</h2>
         {zile.length === 0 && <p class="gol">Nicio zi scrisă încă.</p>}
         <ul>
-          {zile.map((z) => (
-            <li>
-              <a href={z.data_zi === azi ? "/" : `/zi/${z.data_zi}`} class:list={{ activ: cale === `/zi/${z.data_zi}` || (cale === "/" && z.data_zi === azi) }}>
-                <span class="titlu">{etichetaZi(z.data_zi, azi)} <small>{fmtZi(z.data_zi)}</small></span>
-                {scurt(z.rezumat) && <span class="rezumat">{scurt(z.rezumat)}</span>}
-              </a>
-            </li>
-          ))}
+          {zile.map((z) => {
+            const rez = rezumatHtml(z.rezumat);
+            return (
+              <li>
+                <a href={z.data_zi === azi ? "/" : `/zi/${z.data_zi}`} class:list={{ activ: cale === `/zi/${z.data_zi}` || (cale === "/" && z.data_zi === azi) }}>
+                  <span class="titlu">{etichetaZi(z.data_zi, azi)} <small>{fmtZi(z.data_zi)}</small></span>
+                  {rez && <span class="rezumat" set:html={rez} />}
+                </a>
+              </li>
+            );
+          })}
         </ul>
       </section>
   </div>
@@ -82,6 +88,19 @@ const scurt = (s: string) => s.replace(/\s+/g, " ").trim();
   .rezumat {
     display: block; margin-top: 2px; font-size: 13px; color: var(--muted);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  /* Semnele din rezumat: casuta unei sarcini si bulina unui element de lista. Mici, doar
+     cat sa se vada starea; textul randului ramane cel care conteaza. */
+  .rezumat :global(i) { margin: 0 5px 0 7px; }
+  .rezumat :global(i:first-child) { margin-left: 0; }
+  .rezumat :global(.bifa) {
+    display: inline-block; width: 9px; height: 9px; vertical-align: 0;
+    border: 1.5px solid var(--faint); border-radius: 3px;
+  }
+  .rezumat :global(.bifa.gata) { background: var(--violet); border-color: var(--violet); }
+  .rezumat :global(.pct) {
+    display: inline-block; width: 3px; height: 3px; vertical-align: 3px;
+    border-radius: 50%; background: var(--violet);
   }
   .gol { margin: 0; font-size: 13.5px; color: var(--faint); }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { comutaSarcina, escapeHtml, randeazaMarkdown } from "./markdown";
+import { comutaSarcina, escapeHtml, randeazaMarkdown, rezumatHtml } from "./markdown";
 
 describe("escapeHtml", () => {
   it("escapeaza cele cinci caractere speciale", () => {
@@ -151,5 +151,38 @@ describe("comutaSarcina", () => {
     const linii = sursa.split("\n");
     linii[nr] = comutaSarcina(linii[nr] ?? "");
     expect(linii.join("\n")).toBe("# Zi\n\nceva\n\n- [ ] unu\n- [x] doi");
+  });
+});
+
+describe("rezumatHtml", () => {
+  it("scoate marcajele si pastreaza starea sarcinilor", () => {
+    expect(rezumatHtml("- [ ] de facut\n- [x] gata")).toBe(
+      '<i class="bifa"></i>de facut <i class="bifa gata"></i>gata'
+    );
+    expect(rezumatHtml("- [X] gata")).toContain('class="bifa gata"');
+  });
+
+  it("face bulina din elementele simple si scoate diezii de la titluri", () => {
+    expect(rezumatHtml("## Titlu\n- unu\n1. doi")).toBe(
+      'Titlu <i class="pct"></i>unu <i class="pct"></i>doi'
+    );
+  });
+
+  it("scoate marcajele inline si pastreaza doar textul linkului", () => {
+    expect(rezumatHtml("cu **tare**, *aplecat*, `cod` si [eticheta](https://x.md)")).toBe(
+      "cu tare, aplecat, cod si eticheta"
+    );
+  });
+
+  it("escapeaza textul, deci nimic din notita nu devine HTML", () => {
+    expect(rezumatHtml("- [ ] <script>alert(1)</script>")).toBe(
+      '<i class="bifa"></i>&lt;script&gt;alert(1)&lt;/script&gt;'
+    );
+    expect(rezumatHtml("a & b")).toBe("a &amp; b");
+  });
+
+  it("sare peste randurile goale si intoarce sir gol pentru text gol", () => {
+    expect(rezumatHtml("unu\n\n\ndoi")).toBe("unu doi");
+    expect(rezumatHtml("   \n\n ")).toBe("");
   });
 });
