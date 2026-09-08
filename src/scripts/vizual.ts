@@ -193,7 +193,7 @@ export const tema = EditorView.theme(
     ".cm-line": { padding: "0" },
     ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--text)", borderLeftWidth: "2px" },
     ".cm-selectionBackground, &.cm-focused .cm-selectionBackground, .cm-content ::selection": {
-      backgroundColor: "rgba(179, 147, 242, 0.32)",
+      backgroundColor: "var(--selectie)",
     },
     ".cm-placeholder": { color: "var(--faint)" },
 

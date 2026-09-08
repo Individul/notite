@@ -91,7 +91,7 @@ const adresaLuna = (l: string) => `${Astro.url.pathname}?luna=${l}`;
     position: absolute; z-index: 30; width: 292px; padding: 14px;
     top: calc(100% + 8px); right: 0;
     border: 1px solid var(--line); border-radius: 16px;
-    background: var(--bg-2); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
+    background: var(--bg-2); box-shadow: 0 20px 48px var(--umbra);
   }
   /* De aici incolo, marginea din dreapta textului e destul de lata cat sa tina panoul:
      il mutam langa buton, ca sa ramana la indemana cursorului fara sa acopere notita.
@@ -123,7 +123,7 @@ const adresaLuna = (l: string) => `${Astro.url.pathname}?luna=${l}`;
   .panou .zi:hover { background: var(--line); color: var(--text); }
   .panou .zi.alta-luna { color: var(--faint); font-weight: 500; }
   .panou .zi.azi { color: var(--violet); }
-  .panou .zi.activ { background: rgba(179, 147, 242, 0.2); color: var(--violet); }
+  .panou .zi.activ { background: var(--violet-mediu); color: var(--violet); }
   /* Punctul spune ca ziua are text scris: se vede dintr-o privire unde ai notite. */
   .panou .zi.scrisa::after {
     content: ""; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);

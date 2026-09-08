@@ -18,8 +18,19 @@ const email = Astro.locals.email;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#16121D" />
+    {/* Tema aleasa explicit, pusa inainte de prima pictura ca sa nu palpaie. */}
+    <script is:inline>
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem("notite:tema"); } catch (e) { /* stocare blocata */ }
+        if (t === "luminos" || t === "intunecat") document.documentElement.dataset.tema = t;
+        else t = matchMedia("(prefers-color-scheme: light)").matches ? "luminos" : "intunecat";
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute("content", t === "luminos" ? "#FBFAFD" : "#16121D");
+      })();
+    </script>
     <meta name="robots" content="noindex, nofollow" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Notițe" />
@@ -31,26 +42,53 @@ const email = Astro.locals.email;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Manrope:wght@400;500;600&display=swap" />
     <style is:global>
+      /* Doua teme dintr-o singura definitie: `light-dark(luminos, intunecat)` alege dupa
+         `color-scheme`. Fara alegere explicita urmam sistemul; butonul din bara pune
+         `data-tema` pe <html> si fixeaza schema. Culorile de accent sunt mai inchise pe
+         alb, ca sa ramana lizibile (contrast peste 4.5:1). */
       :root {
-        --bg: #16121D;
-        --bg-2: #1E1927;
-        --text: #F4EFF8;
-        --text-2: #C9C0D6;
-        --muted: #A99FB8;
-        --faint: #6E6580;
-        --line: rgba(244, 239, 248, 0.10);
-        --coral: #F4876A;
-        --teal: #4EC5BE;
-        --violet: #B393F2;
-        --live: #6FE3A5;
-        --wip: #F2C25B;
+        color-scheme: light dark;
+        --bg: light-dark(#FBFAFD, #16121D);
+        --bg-2: light-dark(#F1EDF7, #1E1927);
+        --text: light-dark(#1B1626, #F4EFF8);
+        --text-2: light-dark(#453C57, #C9C0D6);
+        --muted: light-dark(#665C79, #A99FB8);
+        --faint: light-dark(#7A7090, #6E6580);
+        --line: light-dark(rgba(27, 22, 38, 0.12), rgba(244, 239, 248, 0.10));
+        --coral: light-dark(#C4492A, #F4876A);
+        --teal: light-dark(#0F736E, #4EC5BE);
+        --violet: light-dark(#6D3FD1, #B393F2);
+        --live: light-dark(#12784F, #6FE3A5);
+        --wip: light-dark(#8A5B00, #F2C25B);
+        /* Fonduri derivate din violet si din galbenul de atentionare. */
+        --violet-slab: light-dark(rgba(109, 63, 209, 0.08), rgba(179, 147, 242, 0.12));
+        --violet-mediu: light-dark(rgba(109, 63, 209, 0.13), rgba(179, 147, 242, 0.18));
+        --marcaj: light-dark(rgba(109, 63, 209, 0.20), rgba(179, 147, 242, 0.35));
+        --selectie: light-dark(rgba(109, 63, 209, 0.22), rgba(179, 147, 242, 0.32));
+        --umbra: light-dark(rgba(27, 22, 38, 0.18), rgba(0, 0, 0, 0.55));
+        --atentie-linie: light-dark(rgba(138, 91, 0, 0.35), rgba(242, 194, 91, 0.40));
+        --atentie-fond: light-dark(rgba(138, 91, 0, 0.07), rgba(242, 194, 91, 0.08));
         --display: 'Outfit', 'Avenir Next', 'Segoe UI', sans-serif;
         --body: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
         --mono: ui-monospace, 'Cascadia Mono', 'Consolas', monospace;
       }
+      :root[data-tema="luminos"] { color-scheme: light; }
+      :root[data-tema="intunecat"] { color-scheme: dark; }
+
+      /* Iconita butonului arata tema in care intri, nu pe cea curenta. Regulile stau aici,
+         nu in Bara.astro, pentru ca stilurile scoped nu pot tinti <html>. */
+      .tema-luna { display: none; }
+      @media (prefers-color-scheme: light) {
+        :root:not([data-tema="intunecat"]) .tema-soare { display: none; }
+        :root:not([data-tema="intunecat"]) .tema-luna { display: block; }
+      }
+      :root[data-tema="luminos"] .tema-soare { display: none; }
+      :root[data-tema="luminos"] .tema-luna { display: block; }
+      :root[data-tema="intunecat"] .tema-soare { display: block; }
+      :root[data-tema="intunecat"] .tema-luna { display: none; }
+
       * { box-sizing: border-box; }
       [hidden] { display: none !important; }
-      html { color-scheme: dark; }
       html, body { margin: 0; padding: 0; }
       body {
         background: var(--bg);
@@ -68,7 +106,7 @@ const email = Astro.locals.email;
         outline: 2px solid var(--coral); outline-offset: 2px; border-radius: 6px;
       }
       button { font: inherit; }
-      mark { background: rgba(179, 147, 242, 0.35); color: inherit; padding: 0 2px; border-radius: 3px; }
+      mark { background: var(--marcaj); color: inherit; padding: 0 2px; border-radius: 3px; }
 
       /* Tablou: lista laterala + continut */
       .tablou { flex: 1; display: grid; grid-template-columns: 1fr; grid-template-rows: auto 1fr; }

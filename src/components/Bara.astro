@@ -18,10 +18,23 @@ const peAzi = zi === azi;
     <a href="/" class:list={["azi", { activ: peAzi }]}>Azi</a>
     {zi && <a href={`/zi/${ziVecina(zi, 1)}`} title="Ziua următoare" aria-label="Ziua următoare">→</a>}
   </nav>
+  <button type="button" id="comuta-tema" class="tema" aria-label="Schimbă tema" title="Schimbă tema">
+    <svg class="tema-soare" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4"></circle>
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+    </svg>
+    <svg class="tema-luna" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path>
+    </svg>
+  </button>
   <form class="cauta" action="/cautare" method="get" role="search">
     <input type="search" name="q" value={q} placeholder="caută…" aria-label="Caută în notițe" autocomplete="off" />
   </form>
 </header>
+
+<script>
+  import "../scripts/tema";
+</script>
 
 <style>
   .bara {
@@ -38,6 +51,12 @@ const peAzi = zi === azi;
   }
   .zile a:hover { color: var(--text); background: var(--line); }
   .zile a.activ { color: var(--violet); }
+  .tema {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; padding: 0; border: 0; border-radius: 10px;
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .tema:hover { color: var(--text); background: var(--line); }
   .cauta { display: flex; }
   .cauta input {
     width: 160px; font: inherit; font-size: 14px; padding: 7px 12px;

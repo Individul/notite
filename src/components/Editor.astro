@@ -92,7 +92,7 @@ const { nota, focus = false } = Astro.props;
     width: 30px; height: 26px; padding: 0; border: 0; border-radius: 999px;
     background: transparent; color: var(--muted); cursor: pointer;
   }
-  .fmt:hover { background: rgba(179, 147, 242, 0.18); color: var(--violet); }
+  .fmt:hover { background: var(--violet-mediu); color: var(--violet); }
   .fmt svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
   .litera { font-family: var(--display); font-size: 14px; font-weight: 600; line-height: 1; }
   .litera.tare { font-weight: 800; }
@@ -102,8 +102,8 @@ const { nota, focus = false } = Astro.props;
   .stare.problema { color: var(--coral); }
   .banner {
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
-    padding: 10px 14px; border: 1px solid rgba(242, 194, 91, 0.4); border-radius: 12px;
-    background: rgba(242, 194, 91, 0.08); font-size: 14px;
+    padding: 10px 14px; border: 1px solid var(--atentie-linie); border-radius: 12px;
+    background: var(--atentie-fond); font-size: 14px;
   }
   /* Textarea se vede doar cat timp nu a pornit CodeMirror (sau daca JavaScript-ul cade). */
   .corp {
