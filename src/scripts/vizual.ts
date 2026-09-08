@@ -166,8 +166,10 @@ function decoratii(vedere: EditorView): DecorationSet {
 
           case "ListMark": {
             if (n.node.parent?.parent?.name !== "BulletList") break;
-            if (!liber(n.from)) break;
-            // La o sarcina, casuta tine deja locul bulinei: marcajul doar dispare.
+            // Spre deosebire de celelalte marcaje, asta ramane randat si pe linia cu
+            // cursorul. Pe `##` sau `**` dezvaluirea e utila, fiindca altfel n-ai cum sa
+            // vezi ori sa schimbi sintaxa; aici bulina — sau casuta, la o sarcina — spune
+            // deja tot ce spune si `-`, asa ca aparitia lui doar sare in ochi.
             const eSarcina = /^\s\[[ xX]\]/.test(doc.sliceString(n.to, n.to + 4));
             bucati.push((eSarcina ? ascunde : bulina).range(n.from, n.to));
             break;
