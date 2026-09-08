@@ -5,6 +5,8 @@
 // manifest, iar fetch-ul implicit al browserului nu il trimite.
 import Bara from "../components/Bara.astro";
 import ListaNote from "../components/ListaNote.astro";
+import Calendar from "../components/Calendar.astro";
+import { lunaValida } from "../lib/calendar";
 
 interface Props {
   title: string;
@@ -12,6 +14,11 @@ interface Props {
 }
 const { title, zi } = Astro.props;
 const email = Astro.locals.email;
+
+// Calendarul e deschis cat timp adresa poarta o luna valida. Are rost doar pe paginile
+// de zi, unde exista o zi curenta de evidentiat.
+const lunaCeruta = Astro.url.searchParams.get("luna") ?? "";
+const cuCalendar = Boolean(zi) && lunaValida(lunaCeruta);
 ---
 
 <!doctype html>
@@ -71,11 +78,20 @@ const email = Astro.locals.email;
       button { font: inherit; }
       mark { background: rgba(179, 147, 242, 0.35); color: inherit; padding: 0 2px; border-radius: 3px; }
 
-      /* Tablou: lista laterala + continut */
+      /* Tablou: lista laterala + continut (+ calendarul, cand e deschis) */
       .tablou { flex: 1; display: grid; grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
       .continut { min-width: 0; padding: 24px 20px 48px; max-width: 760px; width: 100%; margin: 0 auto; }
       @media (min-width: 900px) {
         .tablou { grid-template-columns: 300px minmax(0, 1fr); grid-template-rows: 1fr; }
+        /* Calendarul isi ia propria coloana, ca sa stea langa notita, nu peste ea.
+           In HTML vine inaintea continutului, ca pe telefon sa fie sus, nu sub notita;
+           aici il mutam la dreapta. */
+        .tablou.cu-calendar { grid-template-columns: 300px minmax(0, 1fr) 300px; }
+        /* Randul e scris explicit: altfel plasarea automata, ajunsa la coloana 3 cu panoul,
+           ar impinge continutul pe randul urmator, sub calendar. */
+        .tablou.cu-calendar > .lateral { grid-column: 1; grid-row: 1; }
+        .tablou.cu-calendar > .continut { grid-column: 2; grid-row: 1; }
+        .tablou.cu-calendar > .panou { grid-column: 3; grid-row: 1; }
         .continut { padding: 32px 40px 64px; }
       }
 
@@ -97,8 +113,9 @@ const email = Astro.locals.email;
   </head>
   <body>
     <Bara zi={zi} />
-    <div class="tablou">
+    <div class:list={["tablou", { "cu-calendar": cuCalendar }]}>
       <ListaNote />
+      {cuCalendar && zi && <Calendar zi={zi} luna={lunaCeruta} />}
       <main class="continut">
         <slot />
       </main>
