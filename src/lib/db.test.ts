@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import {
   actualizeazaNota, cauta, citesteNota, creeazaNota, listeazaNote, notaZi, stergeNota, zileRecente,
+  zileScrise,
 } from "./db";
 
 const A = "a@exemplu.md";
@@ -140,5 +141,22 @@ describe("cauta", () => {
     await actualizeazaNota(env.DB, B, b.id, { corp: "parola mea", baza: b.actualizat_la });
     expect(await cauta(env.DB, A, "parola")).toHaveLength(0);
     expect(await cauta(env.DB, B, "parola")).toHaveLength(1);
+  });
+});
+
+describe("zileScrise", () => {
+  it("da doar zilele cu text din interval, si numai ale ownerului", async () => {
+    const scrie = async (owner: string, zi: string, corp: string) => {
+      const n = await notaZi(env.DB, owner, zi);
+      if (corp) await actualizeazaNota(env.DB, owner, n.id, { corp, baza: n.actualizat_la });
+    };
+    await scrie(A, "2026-09-01", "ceva");
+    await scrie(A, "2026-09-15", "altceva");
+    await scrie(A, "2026-09-20", "");        // goala: nu se numara
+    await scrie(A, "2026-10-02", "in afara"); // in afara intervalului
+    await scrie(B, "2026-09-10", "a lui B");
+
+    const zile = await zileScrise(env.DB, A, "2026-09-01", "2026-09-30");
+    expect(zile.sort()).toEqual(["2026-09-01", "2026-09-15"]);
   });
 });

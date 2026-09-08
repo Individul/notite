@@ -1,9 +1,19 @@
 ---
 // Notita unei zile: antet (Azi / Ieri / Maine / ziua saptamanii + data lunga), selectorul
-// de zi si editorul. Sagetile din bara merg din zi in zi; de aici sari direct la o data,
-// ca sa poti scrie dinainte pentru o zi oarecare.
+// de zi si editorul. Sagetile din bara merg din zi in zi; calendarul de aici sare direct
+// la o data, ca sa poti scrie dinainte pentru o zi oarecare.
+//
+// Calendarul e desenat de noi, nu `<input type="date">`: pe acela browserul il afiseaza cu
+// limba sistemului si nu poate fi stilizat, deci pe un sistem cu interfata in alta limba
+// iesea un calendar strain peste o aplicatie romaneasca.
+//
+// Zilele sunt linkuri obisnuite si `<details>` se deschide fara JavaScript, deci selectorul
+// merge intreg si daca scriptul nu ajunge.
+import { env } from "cloudflare:workers";
 import type { Nota } from "../lib/db";
-import { etichetaZi, fmtZi } from "../lib/data";
+import { zileScrise } from "../lib/db";
+import { aziChisinau, etichetaZi, fmtZi } from "../lib/data";
+import { grilaLunii, lunaValida, lunaZilei, ZILE_SAPTAMANA } from "../lib/calendar";
 import Editor from "./Editor.astro";
 
 interface Props {
@@ -11,6 +21,19 @@ interface Props {
   data: string;
 }
 const { nota, data } = Astro.props;
+
+const azi = aziChisinau();
+const cerut = Astro.url.searchParams.get("luna") ?? "";
+// `?luna=` vine din sagetile calendarului; cat timp e in adresa, il tinem deschis.
+const deschis = lunaValida(cerut);
+const grila = grilaLunii(deschis ? cerut : lunaZilei(data));
+
+const primaZi = grila.zile[0]?.data ?? data;
+const ultimaZi = grila.zile.at(-1)?.data ?? data;
+const scrise = new Set(await zileScrise(env.DB, Astro.locals.email, primaZi, ultimaZi));
+
+const adresaZi = (zi: string) => (zi === azi ? "/" : `/zi/${zi}`);
+const adresaLuna = (luna: string) => `${Astro.url.pathname}?luna=${luna}`;
 ---
 
 <header class="antet-zi">
@@ -18,26 +41,47 @@ const { nota, data } = Astro.props;
     <p class="eticheta">{etichetaZi(data)}</p>
     <h1>{fmtZi(data)}</h1>
   </div>
-  <form class="sari" action="/zi" method="get">
-    <label class="doar-citit" for="alege-zi">Sari la o zi</label>
-    <input id="alege-zi" type="date" name="data" value={data} />
-    <button type="submit" class="buton mergi">Mergi</button>
-  </form>
-</header>
-<Editor nota={nota} focus />
 
-<script is:inline>
-  // Cu JavaScript, alegerea datei duce direct acolo, deci butonul devine de prisos.
-  // Fara el, formularul ramane unul obisnuit si butonul face treaba.
-  (function () {
-    var f = document.querySelector("form.sari");
-    if (!f) return;
-    var buton = f.querySelector("button");
-    var camp = f.querySelector("input[type=date]");
-    if (buton) buton.hidden = true;
-    if (camp) camp.addEventListener("change", function () { f.submit(); });
-  })();
-</script>
+  <details class="calendar" open={deschis}>
+    <summary aria-label="Alege ziua">
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <rect x="2" y="3.2" width="12" height="10.6" rx="2.6" />
+        <path d="M2 6.5h12M5.4 1.8v2.6M10.6 1.8v2.6" />
+      </svg>
+      <span>Alege ziua</span>
+    </summary>
+
+    <div class="luna">
+      <div class="cap">
+        <a href={adresaLuna(grila.anterioara)} aria-label="Luna anterioară">←</a>
+        <strong>{grila.eticheta}</strong>
+        <a href={adresaLuna(grila.urmatoare)} aria-label="Luna următoare">→</a>
+      </div>
+      <div class="grila">
+        {ZILE_SAPTAMANA.map((z) => <span class="cap-zi">{z}</span>)}
+        {grila.zile.map((z) => (
+          <a
+            href={adresaZi(z.data)}
+            class:list={[
+              "zi",
+              {
+                "alta-luna": !z.inLuna,
+                azi: z.data === azi,
+                activ: z.data === data,
+                scrisa: scrise.has(z.data),
+              },
+            ]}
+            aria-current={z.data === data ? "page" : undefined}
+          >
+            {z.numar}
+          </a>
+        ))}
+      </div>
+    </div>
+  </details>
+</header>
+
+<Editor nota={nota} focus />
 
 <style>
   .antet-zi {
@@ -54,18 +98,57 @@ const { nota, data } = Astro.props;
   }
   h1::first-letter { text-transform: uppercase; }
 
-  .sari { display: flex; align-items: center; gap: 8px; }
-  .sari input {
-    font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px;
-    border: 1px solid var(--line); border-radius: 999px; background: transparent;
-    color: var(--text-2); outline: none; cursor: pointer;
+  .calendar { position: relative; }
+  .calendar summary {
+    display: inline-flex; align-items: center; gap: 7px; cursor: pointer; list-style: none;
+    padding: 6px 13px; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--text-2); font-size: 13px; font-weight: 600;
   }
-  .sari input:hover { border-color: var(--violet); }
-  .sari input:focus-visible { border-color: var(--violet); }
-  .mergi { padding: 6px 12px; font-size: 13px; }
-  /* Eticheta exista pentru cititoarele de ecran; pe ecran o spune deja campul insusi. */
-  .doar-citit {
-    position: absolute; width: 1px; height: 1px; overflow: hidden;
-    clip-path: inset(50%); white-space: nowrap;
+  .calendar summary::-webkit-details-marker { display: none; }
+  .calendar summary:hover, .calendar[open] summary { border-color: var(--violet); color: var(--violet); }
+  .calendar svg {
+    width: 15px; height: 15px; fill: none; stroke: currentColor;
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  .luna {
+    position: absolute; right: 0; z-index: 20; margin-top: 8px; padding: 12px;
+    width: 266px; border: 1px solid var(--line); border-radius: 16px;
+    background: var(--bg-2); box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  }
+  .cap { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .cap strong {
+    font-family: var(--display); font-size: 14.5px; font-weight: 600; color: var(--text);
+  }
+  .cap strong::first-letter { text-transform: uppercase; }
+  .cap a {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 9px; color: var(--muted); font-size: 15px;
+  }
+  .cap a:hover { background: var(--line); color: var(--text); }
+
+  .grila { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cap-zi {
+    text-align: center; padding: 3px 0 5px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--faint);
+  }
+  .zi {
+    position: relative; display: flex; align-items: center; justify-content: center;
+    height: 32px; border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--text-2);
+    padding-bottom: 3px;
+  }
+  .zi:hover { background: var(--line); color: var(--text); }
+  .zi.alta-luna { color: var(--faint); font-weight: 500; }
+  .zi.azi { color: var(--violet); }
+  .zi.activ { background: rgba(179, 147, 242, 0.2); color: var(--violet); }
+  /* Punctul spune ca ziua are text scris, ca sa se vada dintr-o privire unde ai notite. */
+  .zi.scrisa::after {
+    content: ""; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+    width: 4px; height: 4px; border-radius: 50%; background: var(--violet);
+  }
+  .zi.alta-luna.scrisa::after { background: var(--faint); }
+
+  @media (max-width: 560px) {
+    .luna { right: auto; left: 0; }
   }
 </style>

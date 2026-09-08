@@ -2,7 +2,7 @@
 
 Notița de azi și câteva notițe durabile. Scrii, se salvează singur.
 
-Aplicație personală, la [notite.dumitru.cloud](https://notite.dumitru.cloud). Primul ecran este notița zilei curente (fusul Europe/Chișinău); notițele durabile, cu titlu, stau în lista laterală. Săgețile din bară merg din zi în zi, iar selectorul de dată din antet sare direct la orice zi — inclusiv una viitoare, ca să scrii dinainte. Căutare full-text în toate, insensibilă la diacritice. Instalabilă ca aplicație pe telefon (PWA).
+Aplicație personală, la [notite.dumitru.cloud](https://notite.dumitru.cloud). Primul ecran este notița zilei curente (fusul Europe/Chișinău); notițele durabile, cu titlu, stau în lista laterală. Săgețile din bară merg din zi în zi, iar calendarul din antet sare direct la orice zi — inclusiv una viitoare, ca să scrii dinainte; zilele cu text sunt punctate. Căutare full-text în toate, insensibilă la diacritice. Instalabilă ca aplicație pe telefon (PWA).
 
 ## Cum funcționează
 
@@ -89,9 +89,9 @@ src/lib/db.ts                acces la date (toate functiile primesc owner)
 src/lib/identitate.ts        cine face cererea: Access JWT | DEV_EMAIL | 503
 src/lib/markdown.ts          escapeHtml (folosit de cautare); randeazaMarkdown a ramas nefolosit
 src/lib/cautare.ts           interogarea FTS si fragmentul cu <mark>
+src/lib/calendar.ts          grila unei luni pentru selectorul de zi (saptamana incepe luni)
 src/middleware.ts            identitate pe fiecare cerere, Cache-Control: no-store
-src/pages/                   / (azi), zi/[data], zi?data= (salt la o zi), n/[id], n/noua,
-                             cautare, api/notite/*
+src/pages/                   / (azi), zi/[data], n/[id], n/noua, cautare, api/notite/*
 src/scripts/editor.ts        CodeMirror + salvare automata, ciorne, reincercari, formatare
 src/scripts/vizual.ts        limbajul Markdown si decoratiile care arata formatarea in editor
 ```

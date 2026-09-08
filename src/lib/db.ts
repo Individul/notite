@@ -146,6 +146,23 @@ export async function zileRecente(db: D1Database, owner: string, n = 14): Promis
   return r.results;
 }
 
+// Zilele scrise dintr-un interval, pentru punctele din calendar. Doar datele, fara text.
+export async function zileScrise(
+  db: D1Database,
+  owner: string,
+  dela: string,
+  panala: string
+): Promise<string[]> {
+  const r = await db
+    .prepare(
+      `SELECT data_zi FROM notite
+       WHERE owner = ? AND tip = 'zi' AND corp <> '' AND data_zi BETWEEN ? AND ?`
+    )
+    .bind(owner, dela, panala)
+    .all<{ data_zi: string }>();
+  return r.results.map((x) => x.data_zi);
+}
+
 // `interogare` este deja in sintaxa FTS5 (vezi cautare.ts). Fragmentul vine din corp
 // (coloana 1) cu markere de control, ca sa poata fi escapat in siguranta inainte de <mark>.
 export async function cauta(db: D1Database, owner: string, interogare: string): Promise<Rezultat[]> {
