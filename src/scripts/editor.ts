@@ -335,6 +335,12 @@ function porneste(el: HTMLElement) {
 
   // --- la incarcare ------------------------------------------------------------------
 
+  // Abia acum indicatorul poate spune „salvat”: pana aici serverul a randat „se încarcă…”,
+  // ca o notita pe care nimeni n-o salveaza sa nu para salvata. `pornit` opreste si paznicul
+  // din pagina, care altfel anunta ca editorul n-a ajuns.
+  el.dataset.pornit = "1";
+  seteaza("curat");
+
   const ciorna = citesteCiorna();
   if (ciorna) {
     if (ciorna.baza === baza) {
