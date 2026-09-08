@@ -1,9 +1,9 @@
 ---
-// Editorul unei notite: titlu (doar notele durabile), textarea, comutator Scrie/Citeste,
-// previzualizare randata pe server (clientul o reface live) si indicatorul de stare.
-// Salvarea automata vine din scripts/editor.ts, care citeste data-id / data-actualizat / data-tip.
+// Editorul unei notite: titlu (doar notele durabile), bara de formatare, indicatorul de
+// stare si campul de scris. Textarea e temelia fara JavaScript; scripts/editor.ts pune in
+// locul ei CodeMirror, care arata formatarea in timp ce scrii, si porneste salvarea automata
+// citind data-id / data-actualizat / data-tip.
 import type { Nota } from "../lib/db";
-import { randeazaMarkdown } from "../lib/markdown";
 
 interface Props {
   nota: Nota;
@@ -21,16 +21,6 @@ const { nota, focus = false } = Astro.props;
     />
   )}
   <div class="unelte">
-    <button type="button" class="buton comutator" data-mod="citeste">
-      <svg class="ic-citeste" viewBox="0 0 16 16" aria-hidden="true">
-        <path d="M1.4 8s2.4-4.2 6.6-4.2S14.6 8 14.6 8s-2.4 4.2-6.6 4.2S1.4 8 1.4 8Z" />
-        <circle cx="8" cy="8" r="1.9" />
-      </svg>
-      <svg class="ic-scrie" viewBox="0 0 16 16" aria-hidden="true">
-        <path d="M11.2 2.6l2.2 2.2-7.7 7.7-2.9.7.7-2.9 7.7-7.7Z" />
-      </svg>
-      <span class="text">Citește</span>
-    </button>
     <div class="formatare" role="group" aria-label="Formatare">
       <button type="button" class="fmt" data-fmt="titlu" title="Titlu" aria-label="Titlu">
         <span class="litera">H</span>
@@ -63,7 +53,6 @@ const { nota, focus = false } = Astro.props;
     class="corp" name="corp" placeholder="Scrie aici…"
     autocapitalize="sentences" spellcheck="true" aria-label="Textul notiței"
   >{nota.corp}</textarea>
-  <div id="previzualizare" class="previzualizare markdown" hidden set:html={randeazaMarkdown(nota.corp)} />
   <slot />
 </section>
 
@@ -85,16 +74,6 @@ const { nota, focus = false } = Astro.props;
     display: inline-flex; align-items: center; gap: 2px; padding: 3px;
     border: 1px solid var(--line); border-radius: 999px;
   }
-  /* Un singur buton, nu doua pastile: starea e binara. Eticheta spune ce se intampla
-     la apasare („Citește”), nu in ce mod esti — altfel ar fi ambigua. */
-  .comutator { padding: 6px 14px; font-size: 13px; }
-  .comutator svg {
-    width: 15px; height: 15px; fill: none; stroke: currentColor;
-    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
-  }
-  /* Clasa `citind` marcheaza modul curent; iconita arata mereu unde te duce apasarea. */
-  .comutator .ic-scrie, .comutator.citind .ic-citeste { display: none; }
-  .comutator.citind .ic-scrie { display: block; }
   .fmt {
     display: inline-flex; align-items: center; justify-content: center;
     width: 30px; height: 26px; padding: 0; border: 0; border-radius: 999px;
@@ -113,6 +92,7 @@ const { nota, focus = false } = Astro.props;
     padding: 10px 14px; border: 1px solid rgba(242, 194, 91, 0.4); border-radius: 12px;
     background: rgba(242, 194, 91, 0.08); font-size: 14px;
   }
+  /* Textarea se vede doar cat timp nu a pornit CodeMirror (sau daca JavaScript-ul cade). */
   .corp {
     font: inherit; font-size: 17px; line-height: 1.6; color: var(--text);
     width: 100%; min-height: 50vh; padding: 4px 0; border: 0; background: transparent;
@@ -121,65 +101,3 @@ const { nota, focus = false } = Astro.props;
   .corp::placeholder { color: var(--faint); }
 </style>
 
-<style is:global>
-  /* Textul randat (previzualizare, cautare). Global, ca sa se aplice si pe HTML-ul din set:html. */
-  .markdown { font-size: 17px; line-height: 1.6; padding: 4px 0; }
-  .markdown > :first-child { margin-top: 0; }
-  .markdown h1, .markdown h2, .markdown h3 {
-    font-family: var(--display); font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; margin: 1.2em 0 0.4em;
-  }
-  .markdown h1 { font-size: 28px; }
-  .markdown h2 { font-size: 22px; }
-  .markdown h3 { font-size: 18px; }
-  .markdown p { margin: 0 0 1em; }
-  .markdown ul, .markdown ol { margin: 0 0 1em; }
-  /* Listele neordonate au nevoie de mai mult loc: acolo incap si casutele sarcinilor.
-     La cele ordonate, un padding mai mare ar indeparta numarul de text. */
-  .markdown ul { padding-left: 1.75em; }
-  .markdown ol { padding-left: 1.45em; }
-  .markdown li { margin: 0.2em 0; position: relative; }
-  /* Buline mici din paleta, in locul discului implicit; numerele listelor ordonate la fel. */
-  .markdown ul { list-style: none; }
-  .markdown ul > li::before {
-    content: ""; position: absolute; left: -0.88em; top: 0.63em;
-    width: 5px; height: 5px; border-radius: 50%; background: var(--violet);
-  }
-  .markdown ol > li::marker { color: var(--violet); font-weight: 600; font-size: 0.92em; }
-
-  /* Sarcini (`- [ ]` / `- [x]`): casuta proprie in locul bulinei. Iese `disabled` din
-     randare; editorul o activeaza in previzualizare, unde bifa scrie inapoi in text. */
-  .markdown li.sarcina { list-style: none; }
-  .markdown li.sarcina::before { content: none; }
-  .markdown li.sarcina > input {
-    appearance: none; -webkit-appearance: none;
-    /* In px, nu in em: <input> nu mosteneste font-size-ul textului, deci `em` de aici
-       s-ar raporta la marimea implicita a controlului, nu la cea a notitei. */
-    position: absolute; left: -28px; top: 6px;
-    width: 15px; height: 15px; margin: 0; padding: 0;
-    border: 1.5px solid var(--faint); border-radius: 5px;
-    background: transparent; cursor: pointer;
-    transition: background-color 0.12s ease, border-color 0.12s ease;
-  }
-  /* Tinta de atingere, invizibila, in jurul casutei de 15px. */
-  .markdown li.sarcina > input::after { content: ""; position: absolute; inset: -9px; }
-  .markdown li.sarcina > input:hover:not(:disabled) { border-color: var(--violet); }
-  .markdown li.sarcina > input:disabled { cursor: default; }
-  .markdown li.sarcina > input:checked { background: var(--violet); border-color: var(--violet); }
-  .markdown li.sarcina > input:checked::before {
-    content: ""; position: absolute; left: 3.8px; top: 1.4px;
-    width: 3.2px; height: 7px; border: solid var(--bg); border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-  }
-  .markdown li.sarcina.gata > span {
-    color: var(--faint); text-decoration: line-through; text-decoration-thickness: 1px;
-  }
-  .markdown a { color: var(--teal); text-decoration: underline; text-underline-offset: 3px; }
-  .markdown code { font-family: var(--mono); font-size: 0.9em; background: var(--line); padding: 1px 5px; border-radius: 5px; }
-  .markdown pre {
-    margin: 0 0 1em; padding: 12px 14px; border-radius: 12px; background: var(--bg-2); overflow-x: auto;
-    font-family: var(--mono); font-size: 14px; line-height: 1.5;
-  }
-  .markdown pre code { background: transparent; padding: 0; font-size: inherit; }
-  .markdown strong { font-weight: 600; color: var(--text); }
-  .markdown:empty::before { content: "Nimic de citit încă."; color: var(--faint); }
-</style>

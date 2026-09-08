@@ -7,6 +7,7 @@ Aplicație personală de notițe (notite.dumitru.cloud). Astro `output: 'server'
 - Totul în română: UI cu diacritice; comentarii, mesaje de commit și nume de fișiere fără diacritice; identificatori în română (`notaZi`, `verificaAccessJwt`).
 - Fiecare interogare D1 filtrează pe `owner`. Paginile nu citesc `env.ACCESS_*` direct; identitatea vine din `Astro.locals.email` (middleware).
 - Modulele pure din `src/lib` au teste (`vitest` cu `@cloudflare/vitest-pool-workers`).
+- Editorul e CodeMirror 6 cu formatarea la vedere (`src/scripts/vizual.ts`). Documentul lui *este* textul Markdown, deci salvarea, D1 si cautarea raman ce erau. Limbajul se construieste pe `@lezer/markdown`, nu pe `@codemirror/lang-markdown`: acela aduce parserele HTML/CSS/JS si dubleaza pachetul. Decoram doar ce randeaza aplicatia; restul ramane text simplu.
 
 ## Development
 

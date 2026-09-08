@@ -21,6 +21,11 @@
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.0",
+    "@codemirror/commands": "^6.11.0",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/state": "^6.7.4",
+    "@codemirror/view": "^6.43.11",
+    "@lezer/markdown": "^1.7.2",
     "astro": "^7.3.1",
     "wrangler": "^4.129.1"
   },

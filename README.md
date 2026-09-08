@@ -10,8 +10,9 @@ Aplicație personală, la [notite.dumitru.cloud](https://notite.dumitru.cloud). 
 - **D1** (SQLite) cu text în clar și index **FTS5**; fiecare notiță are un `owner` (e-mail), iar fiecare interogare filtrează pe el.
 - **Cloudflare Access** face autentificarea (cod pe e-mail). Serverul verifică semnătura JWT-ului din `Cf-Access-Jwt-Assertion`; fără Access configurat răspunde 503 (eșuează închis).
 - **Salvare automată** la ~1 s după ce te oprești din scris, la `blur`, la ascunderea paginii și la Ctrl/Cmd+S. Dacă salvarea eșuează, textul rămâne în `localStorage` și se retrimite când revine netul. Două taburi care editează aceeași notiță: al doilea primește „conflict” și trebuie să reîncarce.
-- **Markdown** minimal (titluri, liste, bold/italic, cod, linkuri), randat de un renderer propriu, sigur, folosit identic pe server și pe client. O bară mică de butoane pune marcajele în text (și Ctrl/Cmd+B, Ctrl/Cmd+I).
-- **Sarcini**: `- [ ]` și `- [x]` devin căsuțe de bifat. În „Citește”, bifa se scrie înapoi în textul notiței și se salvează ca orice altă modificare.
+- **Editor cu formatare la vedere** (CodeMirror 6): scrii Markdown, dar titlurile sunt mai mari, îngroșatul chiar gros, iar marcajele se ascund. Pe linia cu cursorul reapar, ca să le poți edita. Nu există mod de citire separat — o singură vedere. O bară mică de butoane pune marcajele în text (și Ctrl/Cmd+B, Ctrl/Cmd+I).
+- **Markdown** minimal: titluri `#`–`###`, liste, bold/italic, cod, linkuri, sarcini. Ce nu e în listă (citate, tabele, `####`) rămâne text simplu, ca editorul să nu promită ce aplicația nu susține.
+- **Sarcini**: `- [ ]` și `- [x]` sunt căsuțe adevărate, bifabile cu clicul chiar în timp ce scrii; bifa schimbă textul notiței și se salvează ca orice altă modificare.
 
 Planul complet, cu deciziile luate: [`docs/plans/2026-09-07-notite-v1.md`](docs/plans/2026-09-07-notite-v1.md).
 
@@ -85,9 +86,10 @@ Stare (7 septembrie 2026): totul de mai jos este făcut. D1 `notite` creat și m
 migrations/0001_init.sql     tabela notite + FTS5 + triggere
 src/lib/db.ts                acces la date (toate functiile primesc owner)
 src/lib/identitate.ts        cine face cererea: Access JWT | DEV_EMAIL | 503
-src/lib/markdown.ts          renderer Markdown sigur (server + client)
+src/lib/markdown.ts          escapeHtml (folosit de cautare); randeazaMarkdown a ramas nefolosit
 src/lib/cautare.ts           interogarea FTS si fragmentul cu <mark>
 src/middleware.ts            identitate pe fiecare cerere, Cache-Control: no-store
 src/pages/                   / (azi), zi/[data], n/[id], n/noua, cautare, api/notite/*
-src/scripts/editor.ts        salvare automata, ciorne, reincercari, previzualizare, formatare, bife
+src/scripts/editor.ts        CodeMirror + salvare automata, ciorne, reincercari, formatare
+src/scripts/vizual.ts        limbajul Markdown si decoratiile care arata formatarea in editor
 ```

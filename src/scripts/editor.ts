@@ -1,11 +1,17 @@
-// Editorul pe client: salvare automata cu masina de stari, ciorna in localStorage ca plasa
-// de siguranta, reincercare cu backoff, Ctrl/Cmd+S, previzualizare Markdown si crestere.
+// Editorul pe client: CodeMirror cu previzualizare vie (vezi scripts/vizual.ts), peste
+// aceeasi salvare automata ca inainte — masina de stari, ciorna in localStorage ca plasa
+// de siguranta, reincercare cu backoff, Ctrl/Cmd+S.
 //
 // Stari: curat (salvat) -> murdar (input) -> se-salveaza (timer/blur/ascundere/Ctrl+S)
 //   -> curat (200) | conflict (409, autosave oprit) | offline / eroare (retea, 5xx; reincearca).
 // Ciorna { titlu, corp, baza, la } se scrie la fiecare input si se sterge dupa 200.
+//
+// Documentul din CodeMirror *este* textul Markdown, deci salvarea trimite acelasi lucru ca
+// pana acum: D1, cautarea si API-ul raman neatinse.
 
-import { comutaSarcina, randeazaMarkdown } from "../lib/markdown";
+import { history, historyKeymap, standardKeymap } from "@codemirror/commands";
+import { EditorView, keymap, placeholder } from "@codemirror/view";
+import { limbaNotite, previzualizareVie, tema } from "./vizual";
 
 type Stare = "curat" | "murdar" | "se-salveaza" | "offline" | "eroare" | "conflict";
 
@@ -37,16 +43,13 @@ function porneste(el: HTMLElement) {
   let baza = el.dataset.actualizat ?? "";
   const CHEIE = `notite:ciorna:${id}`;
 
-  const corp = el.querySelector<HTMLTextAreaElement>("textarea.corp");
+  const camp = el.querySelector<HTMLTextAreaElement>("textarea.corp");
   const titlu = el.querySelector<HTMLInputElement>("input.titlu");
   const stareEl = el.querySelector<HTMLElement>("#stare");
   const banner = el.querySelector<HTMLElement>("#banner");
-  const previzualizare = el.querySelector<HTMLElement>("#previzualizare");
-  const comutator = el.querySelector<HTMLButtonElement>("button.comutator");
-  const formatare = el.querySelector<HTMLElement>(".formatare");
   const butoaneFmt = Array.from(el.querySelectorAll<HTMLButtonElement>("button.fmt"));
   const sterge = el.querySelector<HTMLButtonElement>("button.sterge");
-  if (!corp || !stareEl || !banner || !previzualizare) return;
+  if (!camp || !stareEl || !banner) return;
 
   let stare: Stare = "curat";
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -54,18 +57,49 @@ function porneste(el: HTMLElement) {
   let dinNou = false;
   let incercari = 0;
 
+  // --- editorul ----------------------------------------------------------------------
+
+  // Textarea ramane in pagina ca temelie fara JavaScript; CodeMirror ii ia locul aici.
+  const gazda = document.createElement("div");
+  gazda.className = "scriitor";
+  camp.parentNode?.insertBefore(gazda, camp);
+  camp.hidden = true;
+
+  const vedere = new EditorView({
+    doc: camp.value,
+    parent: gazda,
+    extensions: [
+      history(),
+      keymap.of([
+        { key: "Mod-b", preventDefault: true, run: () => (incadreaza("**"), true) },
+        { key: "Mod-i", preventDefault: true, run: () => (incadreaza("*"), true) },
+        ...standardKeymap,
+        ...historyKeymap,
+      ]),
+      EditorView.lineWrapping,
+      limbaNotite,
+      previzualizareVie,
+      tema,
+      placeholder("Scrie aici…"),
+      EditorView.contentAttributes.of({ "aria-label": "Textul notiței", spellcheck: "true", autocapitalize: "sentences" }),
+      EditorView.updateListener.of((u) => { if (u.docChanged) laInput(); }),
+    ],
+  });
+
+  const text = () => vedere.state.doc.toString();
+
   // --- stare si banner ---------------------------------------------------------------
 
-  function seteaza(s: Stare, text?: string) {
+  function seteaza(s: Stare, mesaj?: string) {
     stare = s;
-    stareEl!.textContent = text ?? TEXTE[s];
+    stareEl!.textContent = mesaj ?? TEXTE[s];
     stareEl!.className = "stare" + (s === "offline" || s === "eroare" ? " atentie" : s === "conflict" ? " problema" : "");
   }
 
-  function arataBanner(text: string, actiuni: { text: string; fn: () => void }[]) {
+  function arataBanner(mesaj: string, actiuni: { text: string; fn: () => void }[]) {
     banner!.replaceChildren();
     const p = document.createElement("span");
-    p.textContent = text;
+    p.textContent = mesaj;
     banner!.appendChild(p);
     for (const a of actiuni) {
       const b = document.createElement("button");
@@ -82,7 +116,7 @@ function porneste(el: HTMLElement) {
   // --- ciorna ------------------------------------------------------------------------
 
   function scrieCiorna() {
-    const c: Ciorna = { corp: corp!.value, baza, la: new Date().toISOString() };
+    const c: Ciorna = { corp: text(), baza, la: new Date().toISOString() };
     if (titlu) c.titlu = titlu.value;
     try { localStorage.setItem(CHEIE, JSON.stringify(c)); } catch { /* spatiu plin sau blocat */ }
   }
@@ -96,9 +130,8 @@ function porneste(el: HTMLElement) {
   }
   function stergeCiorna() { try { localStorage.removeItem(CHEIE); } catch { /* ignorat */ } }
   function aplicaCiorna(c: Ciorna) {
-    corp!.value = c.corp;
+    vedere.dispatch({ changes: { from: 0, to: vedere.state.doc.length, insert: c.corp } });
     if (titlu && typeof c.titlu === "string") titlu.value = c.titlu;
-    creste();
   }
   function fmtMoment(iso: string): string {
     const d = new Date(iso);
@@ -128,7 +161,7 @@ function porneste(el: HTMLElement) {
     seteaza("se-salveaza");
     dinNou = false;
 
-    const trimis: { corp: string; baza: string; titlu?: string } = { corp: corp!.value, baza };
+    const trimis: { corp: string; baza: string; titlu?: string } = { corp: text(), baza };
     if (titlu) trimis.titlu = titlu.value;
 
     let res: Response;
@@ -179,62 +212,17 @@ function porneste(el: HTMLElement) {
     reincercare = setTimeout(() => { void salveaza(); }, asteapta);
   }
 
-  // --- previzualizare si crestere ----------------------------------------------------
+  // --- formatare ---------------------------------------------------------------------
 
-  const areFieldSizing = typeof CSS !== "undefined" && CSS.supports?.("field-sizing", "content");
-  function creste() {
-    if (areFieldSizing) return;
-    corp!.style.height = "auto";
-    corp!.style.height = `${corp!.scrollHeight}px`;
-  }
-
-  function comuta(mod: string) {
-    const citeste = mod === "citeste";
-    if (citeste) {
-      previzualizare!.innerHTML = randeazaMarkdown(corp!.value);
-      // Randarea le da `disabled`; aici, unde bifa se poate scrie inapoi in text, le activam.
-      for (const c of previzualizare!.querySelectorAll<HTMLInputElement>("input[data-linie]")) c.disabled = false;
-    }
-    previzualizare!.hidden = !citeste;
-    corp!.hidden = citeste;
-    if (formatare) formatare.hidden = citeste;
-    if (comutator) {
-      comutator.dataset.mod = citeste ? "scrie" : "citeste";
-      comutator.classList.toggle("citind", citeste);
-      const text = comutator.querySelector(".text");
-      if (text) text.textContent = citeste ? "Scrie" : "Citește";
-    }
-    if (!citeste) corp!.focus();
-  }
-
-  // --- sarcini si formatare ----------------------------------------------------------
-
-  // Schimba o singura linie (bifarea unei sarcini din previzualizare, cu textarea ascunsa).
-  function schimbaLinie(nr: number, transforma: (l: string) => string) {
-    const linii = corp!.value.split("\n");
-    const veche = linii[nr];
-    if (veche === undefined) return;
-    const noua = transforma(veche);
-    if (noua === veche) return;
-    linii[nr] = noua;
-    corp!.value = linii.join("\n");
-    laInput();
-    creste();
-  }
-
-  // Inlocuieste [start, sfarsit) si lasa cursorul intre selStart si selEnd. execCommand
-  // pastreaza istoricul de undo si declanseaza singur `input`; setRangeText e plasa de rezerva.
-  function inlocuieste(start: number, sfarsit: number, text: string, selStart: number, selEnd: number) {
-    corp!.focus({ preventScroll: true });
-    corp!.setSelectionRange(start, sfarsit);
-    let prinComanda = false;
-    try { prinComanda = document.execCommand("insertText", false, text); } catch { prinComanda = false; }
-    if (!prinComanda) {
-      corp!.setRangeText(text, start, sfarsit, "end");
-      laInput();
-      creste();
-    }
-    corp!.setSelectionRange(selStart, selEnd);
+  // Inlocuieste [start, sfarsit) si lasa cursorul intre selStart si selEnd. Tranzactia
+  // intra in istoricul CodeMirror, deci Ctrl+Z desface exact acest pas.
+  function inlocuieste(start: number, sfarsit: number, insert: string, selStart: number, selEnd: number) {
+    vedere.dispatch({
+      changes: { from: start, to: sfarsit, insert },
+      selection: { anchor: selStart, head: selEnd },
+      scrollIntoView: true,
+    });
+    vedere.focus();
   }
 
   // Cate stelute la rand sunt lipite de pozitia p (inapoi, spre stanga, sau inainte).
@@ -246,10 +234,10 @@ function porneste(el: HTMLElement) {
 
   // Bold / italic: incadreaza selectia, sau scoate marcajele daca sunt deja acolo.
   function incadreaza(marca: string) {
-    const v = corp!.value;
+    const v = text();
     const n = marca.length;
-    let s = corp!.selectionStart;
-    let e = corp!.selectionEnd;
+    let s = vedere.state.selection.main.from;
+    let e = vedere.state.selection.main.to;
 
     // Marcajul de inceput de linie ramane pe dinafara: `**- [ ] x**` n-ar mai fi sarcina,
     // iar `**## x**` n-ar mai fi titlu. La fel, nu inghitim spatiile de la capete, fiindca
@@ -286,21 +274,21 @@ function porneste(el: HTMLElement) {
   // Titlu / lista / sarcina: pune marcajul pe fiecare linie atinsa de selectie. Daca toate
   // il au deja exact pe el, butonul il scoate; daca au altul din familie, il inlocuieste.
   function prefixeaza(marca: string, tipar: RegExp, are: RegExp) {
-    const v = corp!.value;
-    const start = v.lastIndexOf("\n", corp!.selectionStart - 1) + 1;
-    const capat = v.indexOf("\n", corp!.selectionEnd);
+    const v = text();
+    const start = v.lastIndexOf("\n", vedere.state.selection.main.from - 1) + 1;
+    const capat = v.indexOf("\n", vedere.state.selection.main.to);
     const sfarsit = capat === -1 ? v.length : capat;
 
     const linii = v.slice(start, sfarsit).split("\n");
     const prefixe = linii.map((l) => l.match(tipar)?.[0] ?? "");
     const scoatem = prefixe.every((p) => are.test(p));
-    const text = linii
+    const insert = linii
       .map((l, k) => {
         const rest = l.slice((prefixe[k] ?? "").length);
         return scoatem ? rest : marca + rest;
       })
       .join("\n");
-    inlocuieste(start, sfarsit, text, start, start + text.length);
+    inlocuieste(start, sfarsit, insert, start, start + insert.length);
   }
 
   const ACTIUNI: Record<string, () => void> = {
@@ -313,9 +301,8 @@ function porneste(el: HTMLElement) {
 
   // --- evenimente --------------------------------------------------------------------
 
-  corp.addEventListener("input", () => { laInput(); creste(); });
+  vedere.contentDOM.addEventListener("blur", () => { if (stare === "murdar") void salveaza(); });
   titlu?.addEventListener("input", laInput);
-  corp.addEventListener("blur", () => { if (stare === "murdar") void salveaza(); });
   titlu?.addEventListener("blur", () => { if (stare === "murdar") void salveaza(); });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden" && stare === "murdar") void salveaza({ keepalive: true });
@@ -324,35 +311,20 @@ function porneste(el: HTMLElement) {
   window.addEventListener("online", () => {
     if (stare === "offline" || stare === "eroare") { clearTimeout(reincercare); void salveaza(); }
   });
+  // Ctrl/Cmd+S la nivel de document, ca sa mearga si din campul de titlu.
   document.addEventListener("keydown", (e) => {
-    if (!e.ctrlKey && !e.metaKey) return;
-    const tasta = e.key.toLowerCase();
-    if (tasta === "s") {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
       e.preventDefault();
       if (stare === "se-salveaza") dinNou = true;
       else void salveaza();
-    } else if ((tasta === "b" || tasta === "i") && document.activeElement === corp) {
-      e.preventDefault();
-      incadreaza(tasta === "b" ? "**" : "*");
     }
   });
-  comutator?.addEventListener("click", () => comuta(comutator.dataset.mod ?? "scrie"));
 
   for (const b of butoaneFmt) {
-    // mousedown: fara asta, apasarea butonului scoate focusul din textarea si pierde selectia.
+    // mousedown: fara asta, apasarea butonului scoate focusul din editor si pierde selectia.
     b.addEventListener("mousedown", (e) => e.preventDefault());
     b.addEventListener("click", () => ACTIUNI[b.dataset.fmt ?? ""]?.());
   }
-
-  // Bifarea unei sarcini din previzualizare scrie inapoi in linia din text.
-  previzualizare.addEventListener("change", (e) => {
-    const casuta = e.target;
-    if (!(casuta instanceof HTMLInputElement)) return;
-    const nr = Number(casuta.dataset.linie);
-    if (!Number.isInteger(nr)) return;
-    schimbaLinie(nr, comutaSarcina);
-    casuta.closest("li")?.classList.toggle("gata", casuta.checked);
-  });
 
   sterge?.addEventListener("click", async () => {
     if (!confirm("Ștergi notița definitiv?")) return;
@@ -368,26 +340,23 @@ function porneste(el: HTMLElement) {
     if (ciorna.baza === baza) {
       // Pagina nu s-a schimbat de cand am scris ciorna (ex. offline -> reload): o aplicam si salvam.
       aplicaCiorna(ciorna);
-      seteaza("murdar");
-      scrieCiorna();
       void salveaza();
     } else {
       arataBanner(`Ai o ciornă nesalvată de la ${fmtMoment(ciorna.la)}.`, [
-        { text: "Folosește ciorna", fn: () => { aplicaCiorna(ciorna); seteaza("murdar"); scrieCiorna(); void salveaza(); } },
+        { text: "Folosește ciorna", fn: () => { aplicaCiorna(ciorna); void salveaza(); } },
         { text: "Renunță", fn: stergeCiorna },
       ]);
     }
   }
 
-  creste();
   if (el.dataset.focus === "1") {
     if (titlu && !titlu.value) {
       // Nota noua: incepem cu titlul.
       titlu.focus({ preventScroll: true });
     } else {
-      const n = corp.value.length;
-      corp.focus({ preventScroll: true });
-      corp.setSelectionRange(n, n);
+      const n = vedere.state.doc.length;
+      vedere.dispatch({ selection: { anchor: n } });
+      vedere.focus();
     }
   }
 }
