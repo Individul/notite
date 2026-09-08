@@ -21,9 +21,40 @@ const { nota, focus = false } = Astro.props;
     />
   )}
   <div class="unelte">
-    <div class="moduri" role="group" aria-label="Mod">
-      <button type="button" class="mod activ" data-mod="scrie" aria-pressed="true">Scrie</button>
-      <button type="button" class="mod" data-mod="citeste" aria-pressed="false">Citește</button>
+    <button type="button" class="buton comutator" data-mod="citeste">
+      <svg class="ic-citeste" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M1.4 8s2.4-4.2 6.6-4.2S14.6 8 14.6 8s-2.4 4.2-6.6 4.2S1.4 8 1.4 8Z" />
+        <circle cx="8" cy="8" r="1.9" />
+      </svg>
+      <svg class="ic-scrie" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M11.2 2.6l2.2 2.2-7.7 7.7-2.9.7.7-2.9 7.7-7.7Z" />
+      </svg>
+      <span class="text">Citește</span>
+    </button>
+    <div class="formatare" role="group" aria-label="Formatare">
+      <button type="button" class="fmt" data-fmt="titlu" title="Titlu" aria-label="Titlu">
+        <span class="litera">H</span>
+      </button>
+      <button type="button" class="fmt" data-fmt="bold" title="Îngroșat (Ctrl+B)" aria-label="Îngroșat">
+        <span class="litera tare">B</span>
+      </button>
+      <button type="button" class="fmt" data-fmt="italic" title="Cursiv (Ctrl+I)" aria-label="Cursiv">
+        <span class="litera aplecat">I</span>
+      </button>
+      <button type="button" class="fmt" data-fmt="lista" title="Listă" aria-label="Listă">
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="3.1" cy="4" r="1.05" fill="currentColor" stroke="none" />
+          <circle cx="3.1" cy="8" r="1.05" fill="currentColor" stroke="none" />
+          <circle cx="3.1" cy="12" r="1.05" fill="currentColor" stroke="none" />
+          <path d="M6.6 4h6.7M6.6 8h6.7M6.6 12h6.7" />
+        </svg>
+      </button>
+      <button type="button" class="fmt" data-fmt="sarcina" title="Sarcină" aria-label="Sarcină">
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <rect x="2.6" y="2.6" width="10.8" height="10.8" rx="3" />
+          <path d="M5.5 8.1l1.9 1.9 3.3-3.9" />
+        </svg>
+      </button>
     </div>
     <span id="stare" class="stare" aria-live="polite">salvat</span>
   </div>
@@ -49,14 +80,32 @@ const { nota, focus = false } = Astro.props;
   }
   .titlu::placeholder { color: var(--faint); }
   .titlu:focus { border-bottom-color: var(--violet); }
-  .unelte { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .moduri { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; }
-  .mod {
-    padding: 4px 12px; border: 0; border-radius: 999px; background: transparent;
-    color: var(--muted); font-weight: 600; font-size: 13px; cursor: pointer;
+  .unelte { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .formatare {
+    display: inline-flex; align-items: center; gap: 2px; padding: 3px;
+    border: 1px solid var(--line); border-radius: 999px;
   }
-  .mod.activ { background: rgba(179, 147, 242, 0.18); color: var(--violet); }
-  .stare { font-size: 13px; font-weight: 600; color: var(--faint); }
+  /* Un singur buton, nu doua pastile: starea e binara. Eticheta spune ce se intampla
+     la apasare („Citește”), nu in ce mod esti — altfel ar fi ambigua. */
+  .comutator { padding: 6px 14px; font-size: 13px; }
+  .comutator svg {
+    width: 15px; height: 15px; fill: none; stroke: currentColor;
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+  }
+  /* Clasa `citind` marcheaza modul curent; iconita arata mereu unde te duce apasarea. */
+  .comutator .ic-scrie, .comutator.citind .ic-citeste { display: none; }
+  .comutator.citind .ic-scrie { display: block; }
+  .fmt {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 26px; padding: 0; border: 0; border-radius: 999px;
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .fmt:hover { background: rgba(179, 147, 242, 0.18); color: var(--violet); }
+  .fmt svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .litera { font-family: var(--display); font-size: 14px; font-weight: 600; line-height: 1; }
+  .litera.tare { font-weight: 800; }
+  .litera.aplecat { font-style: italic; font-family: var(--body); }
+  .stare { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--faint); }
   .stare.atentie { color: var(--wip); }
   .stare.problema { color: var(--coral); }
   .banner {
@@ -83,8 +132,47 @@ const { nota, focus = false } = Astro.props;
   .markdown h2 { font-size: 22px; }
   .markdown h3 { font-size: 18px; }
   .markdown p { margin: 0 0 1em; }
-  .markdown ul, .markdown ol { margin: 0 0 1em; padding-left: 1.4em; }
-  .markdown li { margin: 0.2em 0; }
+  .markdown ul, .markdown ol { margin: 0 0 1em; }
+  /* Listele neordonate au nevoie de mai mult loc: acolo incap si casutele sarcinilor.
+     La cele ordonate, un padding mai mare ar indeparta numarul de text. */
+  .markdown ul { padding-left: 1.75em; }
+  .markdown ol { padding-left: 1.45em; }
+  .markdown li { margin: 0.2em 0; position: relative; }
+  /* Buline mici din paleta, in locul discului implicit; numerele listelor ordonate la fel. */
+  .markdown ul { list-style: none; }
+  .markdown ul > li::before {
+    content: ""; position: absolute; left: -0.88em; top: 0.63em;
+    width: 5px; height: 5px; border-radius: 50%; background: var(--violet);
+  }
+  .markdown ol > li::marker { color: var(--violet); font-weight: 600; font-size: 0.92em; }
+
+  /* Sarcini (`- [ ]` / `- [x]`): casuta proprie in locul bulinei. Iese `disabled` din
+     randare; editorul o activeaza in previzualizare, unde bifa scrie inapoi in text. */
+  .markdown li.sarcina { list-style: none; }
+  .markdown li.sarcina::before { content: none; }
+  .markdown li.sarcina > input {
+    appearance: none; -webkit-appearance: none;
+    /* In px, nu in em: <input> nu mosteneste font-size-ul textului, deci `em` de aici
+       s-ar raporta la marimea implicita a controlului, nu la cea a notitei. */
+    position: absolute; left: -28px; top: 6px;
+    width: 15px; height: 15px; margin: 0; padding: 0;
+    border: 1.5px solid var(--faint); border-radius: 5px;
+    background: transparent; cursor: pointer;
+    transition: background-color 0.12s ease, border-color 0.12s ease;
+  }
+  /* Tinta de atingere, invizibila, in jurul casutei de 15px. */
+  .markdown li.sarcina > input::after { content: ""; position: absolute; inset: -9px; }
+  .markdown li.sarcina > input:hover:not(:disabled) { border-color: var(--violet); }
+  .markdown li.sarcina > input:disabled { cursor: default; }
+  .markdown li.sarcina > input:checked { background: var(--violet); border-color: var(--violet); }
+  .markdown li.sarcina > input:checked::before {
+    content: ""; position: absolute; left: 3.8px; top: 1.4px;
+    width: 3.2px; height: 7px; border: solid var(--bg); border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .markdown li.sarcina.gata > span {
+    color: var(--faint); text-decoration: line-through; text-decoration-thickness: 1px;
+  }
   .markdown a { color: var(--teal); text-decoration: underline; text-underline-offset: 3px; }
   .markdown code { font-family: var(--mono); font-size: 0.9em; background: var(--line); padding: 1px 5px; border-radius: 5px; }
   .markdown pre {

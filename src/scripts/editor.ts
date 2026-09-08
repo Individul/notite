@@ -5,7 +5,7 @@
 //   -> curat (200) | conflict (409, autosave oprit) | offline / eroare (retea, 5xx; reincearca).
 // Ciorna { titlu, corp, baza, la } se scrie la fiecare input si se sterge dupa 200.
 
-import { randeazaMarkdown } from "../lib/markdown";
+import { comutaSarcina, randeazaMarkdown } from "../lib/markdown";
 
 type Stare = "curat" | "murdar" | "se-salveaza" | "offline" | "eroare" | "conflict";
 
@@ -24,6 +24,14 @@ const INTARZIERE = 800;
 const BACKOFF = [5_000, 10_000, 20_000, 60_000];
 const LIMITA_KEEPALIVE = 60_000;
 
+// Inceputul unui element de lista, cu bifa optionala: ce inlocuiesc butoanele „Listă” si „Sarcină”.
+const INCEPUT_ELEMENT = /^(?:[-*]|\d+\.)\s+(?:\[[ xX]\]\s+)?/;
+// Acelasi lucru plus titlurile: marcajele de inceput de linie peste care bold/italic nu trec.
+const INCEPUT_LINIE = /^(?:#{1,3}\s+|(?:[-*]|\d+\.)\s+(?:\[[ xX]\]\s+)?)/;
+// Ce inseamna, pentru fiecare buton, ca prefixul gasit e chiar al lui si deci se scoate.
+const ARE_LISTA = /^(?:[-*]|\d+\.)\s+$/;
+const ARE_SARCINA = /^(?:[-*]|\d+\.)\s+\[[ xX]\]\s+$/;
+
 function porneste(el: HTMLElement) {
   const id = el.dataset.id ?? "";
   let baza = el.dataset.actualizat ?? "";
@@ -34,7 +42,9 @@ function porneste(el: HTMLElement) {
   const stareEl = el.querySelector<HTMLElement>("#stare");
   const banner = el.querySelector<HTMLElement>("#banner");
   const previzualizare = el.querySelector<HTMLElement>("#previzualizare");
-  const moduri = Array.from(el.querySelectorAll<HTMLButtonElement>("button.mod"));
+  const comutator = el.querySelector<HTMLButtonElement>("button.comutator");
+  const formatare = el.querySelector<HTMLElement>(".formatare");
+  const butoaneFmt = Array.from(el.querySelectorAll<HTMLButtonElement>("button.fmt"));
   const sterge = el.querySelector<HTMLButtonElement>("button.sterge");
   if (!corp || !stareEl || !banner || !previzualizare) return;
 
@@ -180,16 +190,126 @@ function porneste(el: HTMLElement) {
 
   function comuta(mod: string) {
     const citeste = mod === "citeste";
-    if (citeste) previzualizare!.innerHTML = randeazaMarkdown(corp!.value);
+    if (citeste) {
+      previzualizare!.innerHTML = randeazaMarkdown(corp!.value);
+      // Randarea le da `disabled`; aici, unde bifa se poate scrie inapoi in text, le activam.
+      for (const c of previzualizare!.querySelectorAll<HTMLInputElement>("input[data-linie]")) c.disabled = false;
+    }
     previzualizare!.hidden = !citeste;
     corp!.hidden = citeste;
-    for (const b of moduri) {
-      const activ = b.dataset.mod === mod;
-      b.classList.toggle("activ", activ);
-      b.setAttribute("aria-pressed", String(activ));
+    if (formatare) formatare.hidden = citeste;
+    if (comutator) {
+      comutator.dataset.mod = citeste ? "scrie" : "citeste";
+      comutator.classList.toggle("citind", citeste);
+      const text = comutator.querySelector(".text");
+      if (text) text.textContent = citeste ? "Scrie" : "Citește";
     }
     if (!citeste) corp!.focus();
   }
+
+  // --- sarcini si formatare ----------------------------------------------------------
+
+  // Schimba o singura linie (bifarea unei sarcini din previzualizare, cu textarea ascunsa).
+  function schimbaLinie(nr: number, transforma: (l: string) => string) {
+    const linii = corp!.value.split("\n");
+    const veche = linii[nr];
+    if (veche === undefined) return;
+    const noua = transforma(veche);
+    if (noua === veche) return;
+    linii[nr] = noua;
+    corp!.value = linii.join("\n");
+    laInput();
+    creste();
+  }
+
+  // Inlocuieste [start, sfarsit) si lasa cursorul intre selStart si selEnd. execCommand
+  // pastreaza istoricul de undo si declanseaza singur `input`; setRangeText e plasa de rezerva.
+  function inlocuieste(start: number, sfarsit: number, text: string, selStart: number, selEnd: number) {
+    corp!.focus({ preventScroll: true });
+    corp!.setSelectionRange(start, sfarsit);
+    let prinComanda = false;
+    try { prinComanda = document.execCommand("insertText", false, text); } catch { prinComanda = false; }
+    if (!prinComanda) {
+      corp!.setRangeText(text, start, sfarsit, "end");
+      laInput();
+      creste();
+    }
+    corp!.setSelectionRange(selStart, selEnd);
+  }
+
+  // Cate stelute la rand sunt lipite de pozitia p (inapoi, spre stanga, sau inainte).
+  function stelute(v: string, p: number, inapoi: boolean): number {
+    let n = 0;
+    while (inapoi ? v[p - 1 - n] === "*" : v[p + n] === "*") n++;
+    return n;
+  }
+
+  // Bold / italic: incadreaza selectia, sau scoate marcajele daca sunt deja acolo.
+  function incadreaza(marca: string) {
+    const v = corp!.value;
+    const n = marca.length;
+    let s = corp!.selectionStart;
+    let e = corp!.selectionEnd;
+
+    // Marcajul de inceput de linie ramane pe dinafara: `**- [ ] x**` n-ar mai fi sarcina,
+    // iar `**## x**` n-ar mai fi titlu. La fel, nu inghitim spatiile de la capete, fiindca
+    // `** x **` nu se randeaza ca ingrosat.
+    const inceputLinie = v.lastIndexOf("\n", s - 1) + 1;
+    const prefix = v.slice(inceputLinie).match(INCEPUT_LINIE)?.[0] ?? "";
+    if (s < inceputLinie + prefix.length) s = Math.min(inceputLinie + prefix.length, e);
+    while (s < e && /\s/.test(v[s] ?? "")) s++;
+    while (e > s && /\s/.test(v[e - 1] ?? "")) e--;
+
+    const selectat = v.slice(s, e);
+
+    // Marcajele sunt in selectie (s-a selectat `**text**` cu tot cu stelute).
+    if (selectat.length >= 2 * n && selectat.startsWith(marca) && selectat.endsWith(marca)) {
+      const interior = selectat.slice(n, -n);
+      inlocuieste(s, e, interior, s, s + interior.length);
+      return;
+    }
+
+    // Marcajele sunt in jurul selectiei. Numaram sirul de stelute de-o parte si de alta,
+    // ca italicul sa nu ciupeasca o steluta din `**`: pe text ingrosat trebuie sa adauge,
+    // si sa iasa `***text***`.
+    const inainte = stelute(v, s, true);
+    const dupa = stelute(v, e, false);
+    const desface = marca === "*" ? inainte % 2 === 1 && dupa % 2 === 1 : inainte >= 2 && dupa >= 2;
+    if (desface) {
+      inlocuieste(s - n, e + n, selectat, s - n, s - n + selectat.length);
+      return;
+    }
+
+    inlocuieste(s, e, marca + selectat + marca, s + n, s + n + selectat.length);
+  }
+
+  // Titlu / lista / sarcina: pune marcajul pe fiecare linie atinsa de selectie. Daca toate
+  // il au deja exact pe el, butonul il scoate; daca au altul din familie, il inlocuieste.
+  function prefixeaza(marca: string, tipar: RegExp, are: RegExp) {
+    const v = corp!.value;
+    const start = v.lastIndexOf("\n", corp!.selectionStart - 1) + 1;
+    const capat = v.indexOf("\n", corp!.selectionEnd);
+    const sfarsit = capat === -1 ? v.length : capat;
+
+    const linii = v.slice(start, sfarsit).split("\n");
+    const prefixe = linii.map((l) => l.match(tipar)?.[0] ?? "");
+    const scoatem = prefixe.every((p) => are.test(p));
+    const text = linii
+      .map((l, k) => {
+        const rest = l.slice((prefixe[k] ?? "").length);
+        return scoatem ? rest : marca + rest;
+      })
+      .join("\n");
+    inlocuieste(start, sfarsit, text, start, start + text.length);
+  }
+
+  const ACTIUNI: Record<string, () => void> = {
+    titlu: () => prefixeaza("## ", /^#{1,3}\s+/, /^## $/),
+    bold: () => incadreaza("**"),
+    italic: () => incadreaza("*"),
+    lista: () => prefixeaza("- ", INCEPUT_ELEMENT, ARE_LISTA),
+    sarcina: () => prefixeaza("- [ ] ", INCEPUT_ELEMENT, ARE_SARCINA),
+  };
 
   // --- evenimente --------------------------------------------------------------------
 
@@ -205,13 +325,34 @@ function porneste(el: HTMLElement) {
     if (stare === "offline" || stare === "eroare") { clearTimeout(reincercare); void salveaza(); }
   });
   document.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+    if (!e.ctrlKey && !e.metaKey) return;
+    const tasta = e.key.toLowerCase();
+    if (tasta === "s") {
       e.preventDefault();
       if (stare === "se-salveaza") dinNou = true;
       else void salveaza();
+    } else if ((tasta === "b" || tasta === "i") && document.activeElement === corp) {
+      e.preventDefault();
+      incadreaza(tasta === "b" ? "**" : "*");
     }
   });
-  for (const b of moduri) b.addEventListener("click", () => comuta(b.dataset.mod ?? "scrie"));
+  comutator?.addEventListener("click", () => comuta(comutator.dataset.mod ?? "scrie"));
+
+  for (const b of butoaneFmt) {
+    // mousedown: fara asta, apasarea butonului scoate focusul din textarea si pierde selectia.
+    b.addEventListener("mousedown", (e) => e.preventDefault());
+    b.addEventListener("click", () => ACTIUNI[b.dataset.fmt ?? ""]?.());
+  }
+
+  // Bifarea unei sarcini din previzualizare scrie inapoi in linia din text.
+  previzualizare.addEventListener("change", (e) => {
+    const casuta = e.target;
+    if (!(casuta instanceof HTMLInputElement)) return;
+    const nr = Number(casuta.dataset.linie);
+    if (!Number.isInteger(nr)) return;
+    schimbaLinie(nr, comutaSarcina);
+    casuta.closest("li")?.classList.toggle("gata", casuta.checked);
+  });
 
   sterge?.addEventListener("click", async () => {
     if (!confirm("Ștergi notița definitiv?")) return;

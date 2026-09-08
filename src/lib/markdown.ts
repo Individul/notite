@@ -58,18 +58,46 @@ export function inline(brut: string): string {
     .join("");
 }
 
+// Marcajul de sarcina dintr-un element de lista: `[ ] rest` sau `[x] rest`.
+const SARCINA = /^\[([ xX])\](?:\s+(.*))?$/;
+// Aceleasi inceputuri de element ca in randare, pentru comutarea bifei.
+const BIFA = /^((?:[-*]|\d+\.)\s+\[)([ xX])(\])/;
+
+// Inverseaza `- [ ]` <-> `- [x]`. Linia care nu e sarcina se intoarce neschimbata.
+export function comutaSarcina(linie: string): string {
+  return linie.replace(BIFA, (_tot, inainte: string, semn: string, dupa: string) =>
+    inainte + (semn === " " ? "x" : " ") + dupa
+  );
+}
+
+// Un element de lista. `bifat` lipseste la elementele simple; `linie` este indexul liniei
+// din sursa, ca previzualizarea sa stie ce sa modifice cand se bifeaza casuta.
+interface ElementLista {
+  text: string;
+  bifat?: boolean;
+  linie: number;
+}
+
 export function randeazaMarkdown(text: string): string {
   const linii = text.replace(/\r\n?/g, "\n").split("\n");
   const out: string[] = [];
   let paragraf: string[] = [];
-  let lista: { tag: "ul" | "ol"; elemente: string[] } | null = null;
+  let lista: { tag: "ul" | "ol"; elemente: ElementLista[] } | null = null;
 
   const inchideParagraf = () => {
     if (paragraf.length) out.push(`<p>${paragraf.map(inline).join("<br>")}</p>`);
     paragraf = [];
   };
+  // Casuta iese mereu `disabled`: contextele doar-de-citit o lasa inerta, iar editorul
+  // o activeaza dupa ce randeaza previzualizarea.
+  const htmlElement = (e: ElementLista) =>
+    e.bifat === undefined
+      ? `<li>${inline(e.text)}</li>`
+      : `<li class="sarcina${e.bifat ? " gata" : ""}">` +
+        `<input type="checkbox" disabled data-linie="${e.linie}"${e.bifat ? " checked" : ""}>` +
+        `<span>${inline(e.text)}</span></li>`;
   const inchideLista = () => {
-    if (lista) out.push(`<${lista.tag}>${lista.elemente.map((e) => `<li>${inline(e)}</li>`).join("")}</${lista.tag}>`);
+    if (lista) out.push(`<${lista.tag}>${lista.elemente.map(htmlElement).join("")}</${lista.tag}>`);
     lista = null;
   };
   const inchideTot = () => { inchideParagraf(); inchideLista(); };
@@ -98,11 +126,16 @@ export function randeazaMarkdown(text: string): string {
     const ordonat = linie.match(/^\d+\.\s+(.*)$/);
     if (neordonat || ordonat) {
       const tag = neordonat ? "ul" : "ol";
-      const element = (neordonat ?? ordonat)?.[1] ?? "";
+      const brut = (neordonat ?? ordonat)?.[1] ?? "";
+      const sarcina = brut.match(SARCINA);
       inchideParagraf();
       if (lista && lista.tag !== tag) inchideLista();
       if (!lista) lista = { tag, elemente: [] };
-      lista.elemente.push(element);
+      lista.elemente.push(
+        sarcina
+          ? { text: sarcina[2] ?? "", bifat: (sarcina[1] ?? " ") !== " ", linie: i }
+          : { text: brut, linie: i }
+      );
       continue;
     }
 

@@ -10,7 +10,8 @@ Aplicație personală, la [notite.dumitru.cloud](https://notite.dumitru.cloud). 
 - **D1** (SQLite) cu text în clar și index **FTS5**; fiecare notiță are un `owner` (e-mail), iar fiecare interogare filtrează pe el.
 - **Cloudflare Access** face autentificarea (cod pe e-mail). Serverul verifică semnătura JWT-ului din `Cf-Access-Jwt-Assertion`; fără Access configurat răspunde 503 (eșuează închis).
 - **Salvare automată** la ~1 s după ce te oprești din scris, la `blur`, la ascunderea paginii și la Ctrl/Cmd+S. Dacă salvarea eșuează, textul rămâne în `localStorage` și se retrimite când revine netul. Două taburi care editează aceeași notiță: al doilea primește „conflict” și trebuie să reîncarce.
-- **Markdown** minimal (titluri, liste, bold/italic, cod, linkuri), randat de un renderer propriu, sigur, folosit identic pe server și pe client.
+- **Markdown** minimal (titluri, liste, bold/italic, cod, linkuri), randat de un renderer propriu, sigur, folosit identic pe server și pe client. O bară mică de butoane pune marcajele în text (și Ctrl/Cmd+B, Ctrl/Cmd+I).
+- **Sarcini**: `- [ ]` și `- [x]` devin căsuțe de bifat. În „Citește”, bifa se scrie înapoi în textul notiței și se salvează ca orice altă modificare.
 
 Planul complet, cu deciziile luate: [`docs/plans/2026-09-07-notite-v1.md`](docs/plans/2026-09-07-notite-v1.md).
 
@@ -88,5 +89,5 @@ src/lib/markdown.ts          renderer Markdown sigur (server + client)
 src/lib/cautare.ts           interogarea FTS si fragmentul cu <mark>
 src/middleware.ts            identitate pe fiecare cerere, Cache-Control: no-store
 src/pages/                   / (azi), zi/[data], n/[id], n/noua, cautare, api/notite/*
-src/scripts/editor.ts        salvare automata, ciorne, reincercari, previzualizare
+src/scripts/editor.ts        salvare automata, ciorne, reincercari, previzualizare, formatare, bife
 ```

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { escapeHtml, randeazaMarkdown } from "./markdown";
+import { comutaSarcina, escapeHtml, randeazaMarkdown } from "./markdown";
 
 describe("escapeHtml", () => {
   it("escapeaza cele cinci caractere speciale", () => {
@@ -78,5 +78,78 @@ describe("randeazaMarkdown: blocuri", () => {
 
   it("accepta CRLF", () => {
     expect(randeazaMarkdown("a\r\n\r\nb")).toBe("<p>a</p><p>b</p>");
+  });
+});
+
+describe("randeazaMarkdown: sarcini", () => {
+  it("face casuta nebifata din [ ] si bifata din [x], indiferent de majuscula", () => {
+    expect(randeazaMarkdown("- [ ] a")).toBe(
+      '<ul><li class="sarcina"><input type="checkbox" disabled data-linie="0"><span>a</span></li></ul>'
+    );
+    expect(randeazaMarkdown("- [x] a")).toBe(
+      '<ul><li class="sarcina gata"><input type="checkbox" disabled data-linie="0" checked><span>a</span></li></ul>'
+    );
+    expect(randeazaMarkdown("- [X] a")).toContain("checked");
+  });
+
+  it("merge cu *, cu liste ordonate si cu sarcina fara text", () => {
+    expect(randeazaMarkdown("* [ ] a")).toContain('<li class="sarcina">');
+    expect(randeazaMarkdown("1. [x] a")).toBe(
+      '<ol><li class="sarcina gata"><input type="checkbox" disabled data-linie="0" checked><span>a</span></li></ol>'
+    );
+    expect(randeazaMarkdown("- [ ]")).toBe(
+      '<ul><li class="sarcina"><input type="checkbox" disabled data-linie="0"><span></span></li></ul>'
+    );
+  });
+
+  it("amesteca elemente simple si sarcini in aceeasi lista", () => {
+    expect(randeazaMarkdown("- a\n- [ ] b")).toBe(
+      '<ul><li>a</li><li class="sarcina"><input type="checkbox" disabled data-linie="1"><span>b</span></li></ul>'
+    );
+  });
+
+  it("randeaza inline in textul sarcinii si il escapeaza", () => {
+    expect(randeazaMarkdown("- [ ] **a** <b>")).toContain("<span><strong>a</strong> &lt;b&gt;</span>");
+  });
+
+  it("nu confunda alte paranteze drepte cu o sarcina", () => {
+    expect(randeazaMarkdown("- [y] x")).toBe("<ul><li>[y] x</li></ul>");
+    expect(randeazaMarkdown("- [ ]x")).toBe("<ul><li>[ ]x</li></ul>");
+  });
+
+  it("nu face sarcini din liniile dintr-un fence", () => {
+    expect(randeazaMarkdown("```\n- [ ] nu\n```")).toBe("<pre><code>- [ ] nu</code></pre>");
+  });
+
+  it("pune in data-linie indexul liniei din sursa", () => {
+    const html = randeazaMarkdown("text\n\n- [ ] a\n- [x] b");
+    expect(html).toContain('data-linie="2"');
+    expect(html).toContain('data-linie="3"');
+  });
+});
+
+describe("comutaSarcina", () => {
+  it("inverseaza bifa, pastrand restul liniei", () => {
+    expect(comutaSarcina("- [ ] a")).toBe("- [x] a");
+    expect(comutaSarcina("- [x] a")).toBe("- [ ] a");
+    expect(comutaSarcina("- [X] a")).toBe("- [ ] a");
+    expect(comutaSarcina("* [ ] a")).toBe("* [x] a");
+    expect(comutaSarcina("1. [ ] a")).toBe("1. [x] a");
+  });
+
+  it("lasa neatinse liniile care nu sunt sarcini", () => {
+    expect(comutaSarcina("- a")).toBe("- a");
+    expect(comutaSarcina("text [ ] x")).toBe("text [ ] x");
+    expect(comutaSarcina("")).toBe("");
+  });
+
+  it("data-linie arata chiar linia pe care o comuta previzualizarea", () => {
+    // Invariantul de care depinde bifarea din previzualizare: numarul din atribut
+    // este indexul liniei care trebuie schimbata in textul notitei.
+    const sursa = "# Zi\n\nceva\n\n- [ ] unu\n- [ ] doi";
+    const nr = Number(/data-linie="(\d+)"><span>doi/.exec(randeazaMarkdown(sursa))?.[1]);
+    const linii = sursa.split("\n");
+    linii[nr] = comutaSarcina(linii[nr] ?? "");
+    expect(linii.join("\n")).toBe("# Zi\n\nceva\n\n- [ ] unu\n- [x] doi");
   });
 });
