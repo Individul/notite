@@ -13,6 +13,7 @@ Aplicație personală, la [notite.dumitru.cloud](https://notite.dumitru.cloud). 
 - **Editor cu formatare la vedere** (CodeMirror 6): scrii Markdown, dar titlurile sunt mai mari, îngroșatul chiar gros, iar marcajele se ascund. Pe linia cu cursorul reapar, ca să le poți edita. Nu există mod de citire separat — o singură vedere. O bară mică de butoane pune marcajele în text (și Ctrl/Cmd+B, Ctrl/Cmd+I).
 - **Markdown** minimal: titluri `#`–`###`, liste, bold/italic, cod, linkuri, sarcini. Ce nu e în listă (citate, tabele, `####`) rămâne text simplu, ca editorul să nu promită ce aplicația nu susține.
 - **Sarcini**: `- [ ]` și `- [x]` sunt căsuțe adevărate, bifabile cu clicul chiar în timp ce scrii; bifa schimbă textul notiței și se salvează ca orice altă modificare.
+- **Sarcina e implicită**: prima tastă într-o notiță goală și fiecare Enter pornesc un rând nou cu căsuță, fiindcă notițele sunt în primul rând liste de făcut. Pentru un paragraf, ștergi căsuța de pe rând. Enter pe un element gol îl golește, adică ieși din listă; în interiorul unui bloc ``` nu se pune niciun marcaj. Regula stă în `src/lib/sarcini.ts`.
 
 Planul complet, cu deciziile luate: [`docs/plans/2026-09-07-notite-v1.md`](docs/plans/2026-09-07-notite-v1.md).
 
@@ -90,6 +91,7 @@ src/lib/identitate.ts        cine face cererea: Access JWT | DEV_EMAIL | 503
 src/lib/markdown.ts          escapeHtml (folosit de cautare); randeazaMarkdown a ramas nefolosit
 src/lib/cautare.ts           interogarea FTS si fragmentul cu <mark>
 src/lib/calendar.ts          grila unei luni pentru calendar (saptamana incepe luni)
+src/lib/sarcini.ts           regula tastei Enter: randul nou porneste ca sarcina
 src/components/Calendar.astro panoul cu calendarul; starea „deschis” sta in `?luna=`
 src/middleware.ts            identitate pe fiecare cerere, Cache-Control: no-store
 src/pages/                   / (azi), zi/[data], n/[id], n/noua, cautare, api/notite/*

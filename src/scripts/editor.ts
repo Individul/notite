@@ -11,6 +11,7 @@
 
 import { history, historyKeymap, standardKeymap } from "@codemirror/commands";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
+import { inBlocDeCod, laEnter } from "../lib/sarcini";
 import { limbaNotite, previzualizareVie, tema } from "./vizual";
 
 type Stare = "curat" | "murdar" | "se-salveaza" | "offline" | "eroare" | "conflict";
@@ -37,6 +38,8 @@ const INCEPUT_LINIE = /^(?:#{1,3}\s+|(?:[-*]|\d+\.)\s+(?:\[[ xX]\]\s+)?)/;
 // Ce inseamna, pentru fiecare buton, ca prefixul gasit e chiar al lui si deci se scoate.
 const ARE_LISTA = /^(?:[-*]|\d+\.)\s+$/;
 const ARE_SARCINA = /^(?:[-*]|\d+\.)\s+\[[ xX]\]\s+$/;
+// Marcajul cu care porneste orice rand nou.
+const MARCAJ_SARCINA = "- [ ] ";
 
 function porneste(el: HTMLElement) {
   const id = el.dataset.id ?? "";
@@ -73,9 +76,17 @@ function porneste(el: HTMLElement) {
       keymap.of([
         { key: "Mod-b", preventDefault: true, run: () => (incadreaza("**"), true) },
         { key: "Mod-i", preventDefault: true, run: () => (incadreaza("*"), true) },
+        { key: "Enter", run: randNou },
         ...standardKeymap,
         ...historyKeymap,
       ]),
+      // Prima tasta intr-o notita goala deschide direct o sarcina.
+      EditorView.inputHandler.of((v, _de, _la, tastat) => {
+        if (v.state.doc.length !== 0 || tastat === "" || tastat.includes("\n")) return false;
+        const insert = MARCAJ_SARCINA + tastat;
+        v.dispatch({ changes: { from: 0, insert }, selection: { anchor: insert.length }, userEvent: "input.type" });
+        return true;
+      }),
       EditorView.lineWrapping,
       limbaNotite,
       previzualizareVie,
@@ -269,6 +280,25 @@ function porneste(el: HTMLElement) {
     }
 
     inlocuieste(s, e, marca + selectat + marca, s + n, s + n + selectat.length);
+  }
+
+  // Enter: randul urmator porneste ca sarcina, iar un element gol se goleste in loc sa se
+  // inmulteasca. Regula e in lib/sarcini.ts, ca sa poata fi testata fara editor.
+  function randNou(): boolean {
+    const sel = vedere.state.selection.main;
+    const linie = vedere.state.doc.lineAt(sel.from);
+    // Pozitia, nu inceputul liniei: gardul de ``` chiar tastat trebuie sa se numere.
+    const r = laEnter(linie.text, inBlocDeCod(text(), sel.from));
+    // Golirea elementului are sens doar cand nu e nimic selectat; altfel Enter inlocuieste
+    // selectia, ca in orice editor, dar tot cu un rand de sarcina.
+    if (r.fel === "iesi" && sel.empty) {
+      inlocuieste(linie.from, linie.from + r.taie, "", linie.from, linie.from);
+      return true;
+    }
+    const insert = "\n" + (r.fel === "continua" ? r.marcaj : "");
+    const capat = sel.from + insert.length;
+    inlocuieste(sel.from, sel.to, insert, capat, capat);
+    return true;
   }
 
   // Titlu / lista / sarcina: pune marcajul pe fiecare linie atinsa de selectie. Daca toate
