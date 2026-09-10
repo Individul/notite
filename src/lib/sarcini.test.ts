@@ -1,5 +1,41 @@
 import { describe, expect, it } from "vitest";
-import { inBlocDeCod, laEnter } from "./sarcini";
+import { adaugaLaCapat, inBlocDeCod, laEnter, sarcinaNebifata, scoateLinia } from "./sarcini";
+
+describe("sarcinaNebifata", () => {
+  it("recunoaste doar elementele cu caseta goala", () => {
+    expect(sarcinaNebifata("- [ ] lapte")).toBe(true);
+    expect(sarcinaNebifata("  * [ ] adanc")).toBe(true);
+    expect(sarcinaNebifata("2. [ ] doi")).toBe(true);
+    expect(sarcinaNebifata("- [x] gata")).toBe(false);
+    expect(sarcinaNebifata("- [X] gata")).toBe(false);
+    expect(sarcinaNebifata("- lista simpla")).toBe(false);
+    expect(sarcinaNebifata("text")).toBe(false);
+  });
+});
+
+describe("scoateLinia", () => {
+  it("scoate exact linia ceruta, daca textul ei e cel asteptat", () => {
+    expect(scoateLinia("a\n- [ ] b\nc", 1, "- [ ] b")).toBe("a\nc");
+    expect(scoateLinia("- [ ] singura", 0, "- [ ] singura")).toBe("");
+    expect(scoateLinia("a\n- [ ] ultima", 1, "- [ ] ultima")).toBe("a");
+    expect(scoateLinia("- [ ] prima\nb", 0, "- [ ] prima")).toBe("b");
+  });
+
+  it("refuza cand linia s-a schimbat intre timp sau indexul e in afara", () => {
+    expect(scoateLinia("a\n- [ ] b", 1, "- [ ] altceva")).toBeNull();
+    expect(scoateLinia("a\n- [ ] b", 5, "- [ ] b")).toBeNull();
+    expect(scoateLinia("a\n- [ ] b", -1, "- [ ] b")).toBeNull();
+  });
+});
+
+describe("adaugaLaCapat", () => {
+  it("pune linia la sfarsit, pe rand nou, fara sa dubleze randurile goale", () => {
+    expect(adaugaLaCapat("", "- [ ] b")).toBe("- [ ] b");
+    expect(adaugaLaCapat("a", "- [ ] b")).toBe("a\n- [ ] b");
+    expect(adaugaLaCapat("a\n", "- [ ] b")).toBe("a\n- [ ] b");
+    expect(adaugaLaCapat("a\n\n", "- [ ] b")).toBe("a\n\n- [ ] b");
+  });
+});
 
 describe("laEnter: linia noua e sarcina", () => {
   it("porneste o sarcina dupa text simplu, titlu sau linie goala", () => {

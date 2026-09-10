@@ -36,6 +36,30 @@ export function laEnter(linie: string, inCod = false): LaEnter {
   return { fel: "continua", marcaj: bifa ? urmator + SARCINA_NOUA : urmator };
 }
 
+// --- mutarea unei sarcini pe alta zi ----------------------------------------------------
+
+const NEBIFATA = /^[ \t]*(?:[-*]|\d+\.)[ \t]+\[ \]/;
+
+export function sarcinaNebifata(linie: string): boolean {
+  return NEBIFATA.test(linie);
+}
+
+// Scoate randul `index` din text, dar numai daca are exact continutul `text`: asa nu mutam
+// alta linie cand notita s-a schimbat intre timp. Intoarce null cand nu se potriveste.
+export function scoateLinia(corp: string, index: number, text: string): string | null {
+  const linii = corp.split("\n");
+  if (!Number.isInteger(index) || index < 0 || index >= linii.length) return null;
+  if (linii[index] !== text) return null;
+  linii.splice(index, 1);
+  return linii.join("\n");
+}
+
+// Pune `text` pe un rand nou la capatul notitei, fara sa adauge un rand gol in plus.
+export function adaugaLaCapat(corp: string, text: string): string {
+  if (corp === "") return text;
+  return corp.endsWith("\n") ? corp + text : `${corp}\n${text}`;
+}
+
 // Suntem intre doua garduri de ``` ? Numaram gardurile de dinaintea pozitiei; numar impar
 // inseamna ca blocul e inca deschis.
 export function inBlocDeCod(text: string, pozitie: number): boolean {

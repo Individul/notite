@@ -62,6 +62,33 @@ class Casuta extends WidgetType {
   }
 }
 
+// Butonul discret de la capatul unei sarcini nebifate: o muta pe alta zi. Nu schimba nimic
+// singur — anunta editorul (editor.ts), care stie unde se salveaza notita si deschide
+// calendarul. Sta la capatul liniei, ca sa nu se bage intre caseta si text.
+class Muta extends WidgetType {
+  eq(): boolean {
+    return true;
+  }
+
+  toDOM(vedere: EditorView): HTMLElement {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "cm-muta";
+    b.title = "Mută pe altă zi";
+    b.setAttribute("aria-label", "Mută pe altă zi");
+    b.innerHTML =
+      '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h8.5M7.5 4.5 11 8l-3.5 3.5M13.5 3.5v9"/></svg>';
+    b.addEventListener("mousedown", (ev) => ev.preventDefault());
+    b.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      b.dispatchEvent(new CustomEvent("notite:muta", { bubbles: true, detail: { pozitie: vedere.posAtDOM(b), ancora: b } }));
+    });
+    return b;
+  }
+}
+
+const muta = Decoration.widget({ widget: new Muta(), side: 1 });
+
 // Bulina care ia locul lui `-` la listele neordonate.
 class Bulina extends WidgetType {
   eq(): boolean {
@@ -155,6 +182,7 @@ function decoratii(vedere: EditorView): DecorationSet {
           case "TaskMarker": {
             const bifat = doc.sliceString(n.from + 1, n.from + 2) !== " ";
             bucati.push(Decoration.replace({ widget: new Casuta(bifat) }).range(n.from, n.to));
+            if (!bifat) bucati.push(muta.range(doc.lineAt(n.from).to));
             if (bifat) {
               // Taierea merge pe text, nu pe toata linia: altfel linia trece si peste casuta.
               const linie = doc.lineAt(n.from);
@@ -237,6 +265,35 @@ export const tema = EditorView.theme(
       background: "transparent",
       cursor: "pointer",
     },
+    // Butonul de mutare: abia vizibil, ca sa nu incarce lista; se arata la trecerea peste rand.
+    ".cm-muta": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "20px",
+      height: "20px",
+      margin: "0 0 0 8px",
+      padding: "0",
+      verticalAlign: "-4px",
+      border: "0",
+      borderRadius: "6px",
+      background: "transparent",
+      color: "var(--faint)",
+      cursor: "pointer",
+      opacity: "0.35",
+      transition: "opacity .15s, color .15s",
+    },
+    ".cm-muta svg": {
+      width: "13px",
+      height: "13px",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "1.7",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+    },
+    ".cm-line:hover .cm-muta, .cm-muta:focus-visible": { opacity: "1" },
+    ".cm-muta:hover": { opacity: "1", color: "var(--violet)", background: "var(--violet-mediu)" },
     ".cm-casuta:hover": { borderColor: "var(--violet)" },
     ".cm-casuta:checked": { background: "var(--violet)", borderColor: "var(--violet)" },
     ".cm-casuta:checked::before": {

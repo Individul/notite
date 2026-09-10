@@ -14,6 +14,7 @@ Aplicație personală, la [notite.dumitru.cloud](https://notite.dumitru.cloud). 
 - **Markdown** minimal: titluri `#`–`###`, liste, bold/italic, cod, linkuri, sarcini. Ce nu e în listă (citate, tabele, `####`) rămâne text simplu, ca editorul să nu promită ce aplicația nu susține.
 - **Sarcini**: `- [ ]` și `- [x]` sunt căsuțe adevărate, bifabile cu clicul chiar în timp ce scrii; bifa schimbă textul notiței și se salvează ca orice altă modificare.
 - **Sarcina e implicită**: prima tastă într-o notiță goală și fiecare Enter pornesc un rând nou cu căsuță, fiindcă notițele sunt în primul rând liste de făcut. Pentru un paragraf, ștergi căsuța de pe rând. Enter pe un element gol îl golește, adică ieși din listă; în interiorul unui bloc ``` nu se pune niciun marcaj. Regula stă în `src/lib/sarcini.ts`.
+- **Mutarea unei sarcini pe altă zi**: fiecare sarcină nebifată are, la capătul rândului, un buton discret (se vede bine când treci cu mouse-ul peste rând). Deschide un calendar mic cu scurtăturile „Azi” și „Mâine”; la alegere, rândul dispare din notița curentă și apare la capătul zilei alese. Mutarea o face serverul (`POST /api/notite/:id/muta`), întâi scriind la țintă și abia apoi scoțând din sursă, ca o cădere de net între cele două să lase cel mult un dublu, niciodată o pierdere. Sarcinile bifate nu au butonul: sunt gata.
 
 Planul complet, cu deciziile luate: [`docs/plans/2026-09-07-notite-v1.md`](docs/plans/2026-09-07-notite-v1.md).
 
@@ -91,7 +92,9 @@ src/lib/identitate.ts        cine face cererea: Access JWT | DEV_EMAIL | 503
 src/lib/markdown.ts          escapeHtml (folosit de cautare); randeazaMarkdown a ramas nefolosit
 src/lib/cautare.ts           interogarea FTS si fragmentul cu <mark>
 src/lib/calendar.ts          grila unei luni pentru calendar (saptamana incepe luni)
-src/lib/sarcini.ts           regula tastei Enter: randul nou porneste ca sarcina
+src/lib/sarcini.ts           regula tastei Enter si ajutoarele mutarii unei sarcini pe alta zi
+src/scripts/mutare.ts        panoul „muta pe alta zi”: scurtaturi Azi/Maine si calendar mic
+src/pages/api/notite/[id]/muta.ts  POST: muta un rand nebifat la capatul altei zile
 src/components/Calendar.astro panoul cu calendarul; starea „deschis” sta in `?luna=`
 src/middleware.ts            identitate pe fiecare cerere, Cache-Control: no-store
 src/pages/                   / (azi), zi/[data], n/[id], n/noua, cautare, api/notite/*

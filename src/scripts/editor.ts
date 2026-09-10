@@ -11,7 +11,9 @@
 
 import { history, historyKeymap, standardKeymap } from "@codemirror/commands";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
+import { fmtZi } from "../lib/data";
 import { inBlocDeCod, laEnter } from "../lib/sarcini";
+import { deschideMutare } from "./mutare";
 import { limbaNotite, previzualizareVie, tema } from "./vizual";
 
 type Stare = "curat" | "murdar" | "se-salveaza" | "offline" | "eroare" | "conflict";
@@ -43,6 +45,8 @@ const MARCAJ_SARCINA = "- [ ] ";
 
 function porneste(el: HTMLElement) {
   const id = el.dataset.id ?? "";
+  // Ziua notitei (lipseste la notele durabile): calendarul de mutare o blocheaza.
+  const ziNotei = el.dataset.zi ?? null;
   let baza = el.dataset.actualizat ?? "";
   const CHEIE = `notite:ciorna:${id}`;
 
@@ -93,7 +97,10 @@ function porneste(el: HTMLElement) {
       tema,
       placeholder("Scrie aici…"),
       EditorView.contentAttributes.of({ "aria-label": "Textul notiței", spellcheck: "true", autocapitalize: "sentences" }),
-      EditorView.updateListener.of((u) => { if (u.docChanged) laInput(); }),
+      // Schimbarile venite de la o mutare sunt deja salvate pe server: nu le mai trimitem.
+      EditorView.updateListener.of((u) => {
+        if (u.docChanged && !u.transactions.some((t) => t.isUserEvent("muta"))) laInput();
+      }),
     ],
   });
 
@@ -299,6 +306,69 @@ function porneste(el: HTMLElement) {
     const capat = sel.from + insert.length;
     inlocuieste(sel.from, sel.to, insert, capat, capat);
     return true;
+  }
+
+  // --- mutarea unei sarcini pe alta zi ----------------------------------------------
+
+  // Butonul discret de la capatul sarcinii (vizual.ts) anunta pozitia; de aici deschidem
+  // calendarul si, la alegere, cerem serverului sa mute randul. Serverul scrie ambele
+  // notite; noi doar scoatem randul de pe ecran, fara alta salvare.
+  gazda.addEventListener("notite:muta", (e) => {
+    const { pozitie, ancora } = (e as CustomEvent<{ pozitie: number; ancora: HTMLElement }>).detail;
+    const linie = vedere.state.doc.lineAt(pozitie);
+    deschideMutare(ancora, ziNotei, (zi) => { void muta(linie.number - 1, linie.text, zi); });
+  });
+
+  // Serverul lucreaza pe textul salvat, deci intai golim ce e nesalvat.
+  async function asteaptaSalvarea(): Promise<boolean> {
+    if (stare === "murdar" || stare === "offline" || stare === "eroare") await salveaza();
+    for (let i = 0; i < 30 && stare === "se-salveaza"; i++) await new Promise((r) => setTimeout(r, 100));
+    return stare === "curat";
+  }
+
+  async function muta(index: number, textLinie: string, zi: string) {
+    if (!(await asteaptaSalvarea())) {
+      arataBanner("Nu am putut salva notița, așa că sarcina a rămas pe loc.", [{ text: "Închide", fn: () => {} }]);
+      return;
+    }
+    let res: Response;
+    try {
+      res = await fetch(`/api/notite/${id}/muta`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ linie: index, text: textLinie, zi, baza }),
+      });
+    } catch {
+      arataBanner("Fără net: sarcina a rămas pe loc.", [{ text: "Închide", fn: () => {} }]);
+      return;
+    }
+    if (res.status === 200) {
+      const { nota } = (await res.json()) as { nota: NotaApi };
+      // Scoatem randul exact, ca selectia sa ramana pe loc; daca totusi textul difera de al
+      // serverului (n-ar trebui), luam versiunea lui.
+      const l = vedere.state.doc.line(index + 1);
+      const pana = l.to < vedere.state.doc.length ? l.to + 1 : l.to;
+      const dela = l.to === vedere.state.doc.length && l.from > 0 ? l.from - 1 : l.from;
+      vedere.dispatch({ changes: { from: dela, to: pana, insert: "" }, userEvent: "muta" });
+      if (text() !== nota.corp) {
+        vedere.dispatch({ changes: { from: 0, to: vedere.state.doc.length, insert: nota.corp }, userEvent: "muta" });
+      }
+      baza = nota.actualizat_la;
+      el.dataset.actualizat = baza;
+      stergeCiorna();
+      seteaza("curat", `mutată pe ${fmtZi(zi)}`);
+      setTimeout(() => { if (stare === "curat") seteaza("curat"); }, 2500);
+      return;
+    }
+    if (res.status === 409) {
+      seteaza("conflict");
+      arataBanner("Notița s-a schimbat în altă parte. Reîncarcă, apoi mută din nou.", [
+        { text: "Reîncarcă", fn: () => location.reload() },
+      ]);
+      return;
+    }
+    const j = (await res.json().catch(() => ({}))) as { eroare?: string };
+    arataBanner(`Nu am putut muta sarcina: ${j.eroare ?? res.status}.`, [{ text: "Închide", fn: () => {} }]);
   }
 
   // Titlu / lista / sarcina: pune marcajul pe fiecare linie atinsa de selectie. Daca toate

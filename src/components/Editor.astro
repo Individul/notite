@@ -13,7 +13,7 @@ interface Props {
 const { nota, focus = false } = Astro.props;
 ---
 
-<section class="editor" data-id={nota.id} data-actualizat={nota.actualizat_la} data-tip={nota.tip} data-focus={focus ? "1" : undefined}>
+<section class="editor" data-id={nota.id} data-actualizat={nota.actualizat_la} data-tip={nota.tip} data-zi={nota.data_zi ?? undefined} data-focus={focus ? "1" : undefined}>
   {nota.tip === "nota" && (
     <input
       class="titlu" name="titlu" type="text" value={nota.titlu ?? ""}
@@ -112,5 +112,41 @@ const { nota, focus = false } = Astro.props;
     resize: none; outline: none; field-sizing: content;
   }
   .corp::placeholder { color: var(--faint); }
+</style>
+
+<style is:global>
+  /* Panoul „mută pe altă zi" (scripts/mutare.ts) se pune direct in <body>, deci stilul e
+     global. Seamana cu calendarul din antet, doar mai mic. */
+  .muta-panou {
+    position: absolute; z-index: 40; width: 262px; padding: 12px;
+    border: 1px solid var(--line); border-radius: 14px;
+    background: var(--bg-2); box-shadow: 0 16px 40px var(--umbra);
+    font-family: var(--body); font-size: 13px; color: var(--text);
+  }
+  .muta-panou button {
+    font: inherit; color: var(--text-2); background: transparent; border: 0;
+    border-radius: 9px; cursor: pointer;
+  }
+  .muta-panou .scurt { display: flex; gap: 6px; margin-bottom: 10px; }
+  .muta-panou .scurtatura {
+    padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px;
+    font-weight: 600; font-size: 12.5px;
+  }
+  .muta-panou .scurtatura:hover { border-color: var(--violet); color: var(--violet); }
+  .muta-panou .cap { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .muta-panou .cap strong { font-family: var(--display); font-size: 13.5px; font-weight: 600; }
+  .muta-panou .cap strong::first-letter { text-transform: uppercase; }
+  .muta-panou .luna { width: 26px; height: 26px; color: var(--muted); }
+  .muta-panou .luna:hover { background: var(--line); color: var(--text); }
+  .muta-panou .grila { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .muta-panou .cap-zi {
+    text-align: center; padding: 2px 0 4px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; color: var(--faint);
+  }
+  .muta-panou .zi { height: 30px; font-size: 12.5px; font-weight: 600; }
+  .muta-panou .zi:hover:not(:disabled) { background: var(--line); color: var(--text); }
+  .muta-panou .zi.alta-luna { color: var(--faint); font-weight: 500; }
+  .muta-panou .zi.azi { color: var(--violet); }
+  .muta-panou .zi.blocata { color: var(--faint); cursor: default; text-decoration: line-through; }
 </style>
 
