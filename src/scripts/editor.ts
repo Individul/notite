@@ -319,6 +319,29 @@ function porneste(el: HTMLElement) {
     deschideMutare(ancora, ziNotei, (zi) => { void muta(linie.number - 1, linie.text, zi); });
   });
 
+  // Lista laterala e randata pe server (ListaNote.astro). Dupa o mutare, ziua tinta ar
+  // aparea acolo abia la reincarcare; cerem pagina din nou si punem in loc doar lista,
+  // ca sa nu dublam in client logica de randare. Pe mobil pastram lista deschisa sau
+  // inchisa cum era. Daca cererea pica, lista ramane cum e — un refresh o repara.
+  async function reimprospateazaLista() {
+    const veche = document.querySelector("aside.lateral");
+    if (!veche) return;
+    const deschisa = veche.querySelector<HTMLInputElement>("#lista-pliata")?.checked ?? false;
+    let html: string;
+    try {
+      const r = await fetch(location.pathname + location.search, { headers: { accept: "text/html" } });
+      if (!r.ok) return;
+      html = await r.text();
+    } catch {
+      return;
+    }
+    const noua = new DOMParser().parseFromString(html, "text/html").querySelector("aside.lateral");
+    if (!noua) return;
+    const pliaza = noua.querySelector<HTMLInputElement>("#lista-pliata");
+    if (pliaza) pliaza.checked = deschisa;
+    veche.replaceWith(noua);
+  }
+
   // Serverul lucreaza pe textul salvat, deci intai golim ce e nesalvat.
   async function asteaptaSalvarea(): Promise<boolean> {
     if (stare === "murdar" || stare === "offline" || stare === "eroare") await salveaza();
@@ -358,6 +381,7 @@ function porneste(el: HTMLElement) {
       stergeCiorna();
       seteaza("curat", `mutată pe ${fmtZi(zi)}`);
       setTimeout(() => { if (stare === "curat") seteaza("curat"); }, 2500);
+      void reimprospateazaLista();
       return;
     }
     if (res.status === 409) {
