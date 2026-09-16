@@ -11,6 +11,7 @@ import type { EditorState, Range } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
 import type { DecorationSet, ViewUpdate } from "@codemirror/view";
 import { parser as parserMd, TaskList } from "@lezer/markdown";
+import { TITLU_REPORTATE } from "../lib/reportare";
 
 // Limbajul e construit direct pe parserul din @lezer/markdown, nu pe @codemirror/lang-markdown:
 // acela aduce dupa el parserele de HTML, CSS si JavaScript, pentru evidentierea blocurilor de
@@ -207,7 +208,26 @@ function decoratii(vedere: EditorView): DecorationSet {
     });
   }
 
+  marcheazaReportate(vedere, bucati);
   return Decoration.set(bucati, true);
+}
+
+// Blocul reportat capata chenar, ca sa se vada unde se termina ce vine din zilele trecute
+// si unde incepe ce scrii azi. Un rand gol nu era destul de evident. Blocul tine de la
+// titlu pana la primul rand care nu mai e sarcina — aceeasi regula dupa care se si scrie
+// (vezi lib/reportare.ts), ca desenul si textul sa inteleaga la fel unde se termina.
+const ESTE_SARCINA = /^(?:[-*]|\d+\.)\s+\[[ xX]\]\s/;
+
+function marcheazaReportate(vedere: EditorView, bucati: Range<Decoration>[]): void {
+  const doc = vedere.state.doc;
+  for (let nr = 1; nr <= doc.lines; nr++) {
+    if (doc.line(nr).text.trim() !== TITLU_REPORTATE) continue;
+    bucati.push(Decoration.line({ class: "cm-reportate cm-reportate-cap" }).range(doc.line(nr).from));
+    for (let k = nr + 1; k <= doc.lines && ESTE_SARCINA.test(doc.line(k).text); k++) {
+      bucati.push(Decoration.line({ class: "cm-reportate" }).range(doc.line(k).from));
+      nr = k;
+    }
+  }
 }
 
 // Aspectul editorului si al decoratiilor. Foloseste aceiasi tokeni ca restul aplicatiei,
@@ -234,6 +254,21 @@ export const tema = EditorView.theme(
     ".cm-titlu1": { fontSize: "28px" },
     ".cm-titlu2": { fontSize: "22px" },
     ".cm-titlu3": { fontSize: "18px" },
+
+    ".cm-reportate": {
+      background: "var(--violet-slab)",
+      borderLeft: "2px solid var(--violet)",
+      paddingLeft: "12px",
+    },
+    ".cm-line.cm-reportate-cap": {
+      fontFamily: "var(--body)",
+      fontSize: "11.5px",
+      fontWeight: "600",
+      letterSpacing: "0.14em",
+      textTransform: "uppercase",
+      color: "var(--violet)",
+      paddingTop: "6px",
+    },
 
     ".cm-tare": { fontWeight: "700", color: "var(--text)" },
     ".cm-aplecat": { fontStyle: "italic" },
