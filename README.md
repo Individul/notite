@@ -15,6 +15,7 @@ Aplicație personală, la [notite.dumitru.cloud](https://notite.dumitru.cloud). 
 - **Sarcini**: `- [ ]` și `- [x]` sunt căsuțe adevărate, bifabile cu clicul chiar în timp ce scrii; bifa schimbă textul notiței și se salvează ca orice altă modificare.
 - **Sarcina e implicită**: prima tastă într-o notiță goală și fiecare Enter pornesc un rând nou cu căsuță, fiindcă notițele sunt în primul rând liste de făcut. Pentru un paragraf, ștergi căsuța de pe rând. Enter pe un element gol îl golește, adică ieși din listă; în interiorul unui bloc ``` nu se pune niciun marcaj. Regula stă în `src/lib/sarcini.ts`.
 - **Mutarea unei sarcini pe altă zi**: fiecare sarcină nebifată are, la capătul rândului, un buton discret (se vede bine când treci cu mouse-ul peste rând). Deschide un calendar mic cu scurtăturile „Azi” și „Mâine”; la alegere, rândul dispare din notița curentă și apare la capătul zilei alese. Mutarea o face serverul (`POST /api/notite/:id/muta`), întâi scriind la țintă și abia apoi scoțând din sursă, ca o cădere de net între cele două să lase cel mult un dublu, niciodată o pierdere. Sarcinile bifate nu au butonul: sunt gata.
+- **Reportare**: ce n-ai bifat într-o zi trecută se mută în ziua de azi, sub titlul „Reportate”, când deschizi ziua. Nu la miezul nopții dintr-un cron: așa merge și dacă n-ai deschis aplicația câteva zile, iar sarcinile nu se plimbă prin zile pe care nu le-ai folosit.
 
 Planul complet, cu deciziile luate: [`docs/plans/2026-09-07-notite-v1.md`](docs/plans/2026-09-07-notite-v1.md).
 
@@ -95,6 +96,7 @@ src/lib/calendar.ts          grila unei luni pentru calendar (saptamana incepe l
 src/lib/sarcini.ts           regula tastei Enter si ajutoarele mutarii unei sarcini pe alta zi
 src/scripts/mutare.ts        panoul „muta pe alta zi”: scurtaturi Azi/Maine si calendar mic
 src/pages/api/notite/[id]/muta.ts  POST: muta un rand nebifat la capatul altei zile
+src/lib/reportare.ts         mutarea sarcinilor nebifate din zilele trecute in ziua de azi
 src/components/Calendar.astro panoul cu calendarul; starea „deschis” sta in `?luna=`
 src/middleware.ts            identitate pe fiecare cerere, Cache-Control: no-store
 src/pages/                   / (azi), zi/[data], n/[id], n/noua, cautare, api/notite/*

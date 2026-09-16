@@ -1,6 +1,8 @@
 // Acces la date. Toate functiile primesc `owner` si il pun in WHERE: nimeni nu vede
 // notitele altcuiva, chiar daca ghiceste un id.
 
+import { adaugaReportate, desparteSarcini } from "./reportare";
+
 export interface Nota {
   id: string;
   tip: "zi" | "nota";
@@ -161,6 +163,50 @@ export async function zileScrise(
     .bind(owner, dela, panala)
     .all<{ data_zi: string }>();
   return r.results.map((x) => x.data_zi);
+}
+
+// Muta in ziua de azi sarcinile nebifate din zilele trecute. Se cheama la deschiderea zilei
+// curente (vezi reportare.ts pentru de ce atunci si nu la miezul noptii). Intoarce nota de
+// azi — cea primita, daca n-a avut ce muta, altfel cea rescrisa.
+export async function reporteazaSarcini(
+  db: D1Database,
+  owner: string,
+  azi: string,
+  notaDeAzi: Nota
+): Promise<Nota> {
+  const vechi = await db
+    .prepare(
+      `SELECT id, corp FROM notite
+       WHERE owner = ? AND tip = 'zi' AND data_zi < ? AND corp LIKE '%[ ]%'
+       ORDER BY data_zi LIMIT 200`
+    )
+    .bind(owner, azi)
+    .all<{ id: string; corp: string }>();
+
+  const mutate: string[] = [];
+  const golite: { id: string; corp: string }[] = [];
+  for (const zi of vechi.results) {
+    const { ramase, mutate: ale } = desparteSarcini(zi.corp);
+    if (!ale.length) continue;
+    mutate.push(...ale);
+    golite.push({ id: zi.id, corp: ramase });
+  }
+  if (!mutate.length) return notaDeAzi;
+
+  const corpNou = adaugaReportate(notaDeAzi.corp, mutate);
+  const t = acum();
+  const scrie = (id: string, corp: string) =>
+    db
+      .prepare("UPDATE notite SET corp = ?, actualizat_la = ? WHERE id = ? AND owner = ?")
+      .bind(corp, t, id, owner);
+
+  const scrieri = golite.map((z) => scrie(z.id, z.corp));
+  // Ziua de azi se atinge doar daca chiar se schimba, ca sa nu-i miscam `actualizat_la`
+  // degeaba si sa nu dam conflict unui tab deschis.
+  if (corpNou !== notaDeAzi.corp) scrieri.push(scrie(notaDeAzi.id, corpNou));
+  await db.batch(scrieri);
+
+  return corpNou === notaDeAzi.corp ? notaDeAzi : { ...notaDeAzi, corp: corpNou, actualizat_la: t };
 }
 
 // `interogare` este deja in sintaxa FTS5 (vezi cautare.ts). Fragmentul vine din corp

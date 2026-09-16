@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   actualizeazaNota, cauta, citesteNota, creeazaNota, listeazaNote, notaZi, stergeNota, zileRecente,
   zileScrise,
+  reporteazaSarcini,
 } from "./db";
 
 const A = "a@exemplu.md";
@@ -158,5 +159,69 @@ describe("zileScrise", () => {
 
     const zile = await zileScrise(env.DB, A, "2026-09-01", "2026-09-30");
     expect(zile.sort()).toEqual(["2026-09-01", "2026-09-15"]);
+  });
+});
+
+describe("reporteazaSarcini", () => {
+  const scrie = async (owner: string, zi: string, corp: string) => {
+    const n = await notaZi(env.DB, owner, zi);
+    await actualizeazaNota(env.DB, owner, n.id, { corp, baza: n.actualizat_la });
+  };
+  const corpul = async (owner: string, zi: string) =>
+    (await notaZi(env.DB, owner, zi)).corp;
+
+  it("muta nebifatele din zilele trecute in ziua de azi si le scoate de acolo", async () => {
+    await scrie(A, "2026-09-14", "- [ ] de luni\n- [x] facut luni");
+    await scrie(A, "2026-09-15", "- [ ] de marti\nnote oarecare");
+    const azi = await notaZi(env.DB, A, "2026-09-16");
+
+    const dupa = await reporteazaSarcini(env.DB, A, "2026-09-16", azi);
+
+    expect(dupa.corp).toBe("## Reportate\n- [ ] de luni\n- [ ] de marti");
+    expect(await corpul(A, "2026-09-14")).toBe("- [x] facut luni");
+    expect(await corpul(A, "2026-09-15")).toBe("note oarecare");
+  });
+
+  it("nu atinge ziua de azi si nici zilele viitoare", async () => {
+    await scrie(A, "2026-09-16", "- [ ] de azi");
+    await scrie(A, "2026-09-20", "- [ ] planificat");
+    const azi = await notaZi(env.DB, A, "2026-09-16");
+
+    const dupa = await reporteazaSarcini(env.DB, A, "2026-09-16", azi);
+
+    expect(dupa.corp).toBe("- [ ] de azi");
+    expect(await corpul(A, "2026-09-20")).toBe("- [ ] planificat");
+  });
+
+  it("nu vede zilele altui owner", async () => {
+    await scrie(B, "2026-09-15", "- [ ] a lui B");
+    const azi = await notaZi(env.DB, A, "2026-09-16");
+
+    const dupa = await reporteazaSarcini(env.DB, A, "2026-09-16", azi);
+
+    expect(dupa.corp).toBe("");
+    expect(await corpul(B, "2026-09-15")).toBe("- [ ] a lui B");
+  });
+
+  it("a doua rulare nu mai are ce muta si nu dubleaza nimic", async () => {
+    await scrie(A, "2026-09-15", "- [ ] una singura");
+    const azi = await notaZi(env.DB, A, "2026-09-16");
+
+    const prima = await reporteazaSarcini(env.DB, A, "2026-09-16", azi);
+    const aDoua = await reporteazaSarcini(env.DB, A, "2026-09-16", prima);
+
+    expect(prima.corp).toBe("## Reportate\n- [ ] una singura");
+    expect(aDoua.corp).toBe(prima.corp);
+    expect(aDoua.actualizat_la).toBe(prima.actualizat_la);
+  });
+
+  it("pastreaza ce ai scris azi si pune reportatele deasupra", async () => {
+    await scrie(A, "2026-09-15", "- [ ] ramasa");
+    await scrie(A, "2026-09-16", "ce am scris azi");
+    const azi = await notaZi(env.DB, A, "2026-09-16");
+
+    const dupa = await reporteazaSarcini(env.DB, A, "2026-09-16", azi);
+
+    expect(dupa.corp).toBe("## Reportate\n- [ ] ramasa\n\nce am scris azi");
   });
 });

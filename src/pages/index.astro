@@ -1,14 +1,23 @@
 ---
 // Primul ecran: notita de azi (fusul Chisinau), creata la cerere. Fara redirect, ca
 // start_url din manifest sa deschida mereu ziua curenta.
+//
+// Tot aici se face reportarea: ce n-ai bifat in zilele trecute trece in ziua de azi.
+// `/zi/[data]` trimite ziua curenta incoace, deci e singurul loc unde se deschide „azi".
 import { env } from "cloudflare:workers";
 import Base from "../layouts/Base.astro";
 import PaginaZi from "../components/PaginaZi.astro";
 import { aziChisinau } from "../lib/data";
-import { notaZi } from "../lib/db";
+import { notaZi, reporteazaSarcini } from "../lib/db";
 
 const azi = aziChisinau();
-const nota = await notaZi(env.DB, Astro.locals.email, azi);
+// Sarcinile nebifate din zilele trecute trec in ziua de azi, aici, la deschiderea ei.
+const nota = await reporteazaSarcini(
+  env.DB,
+  Astro.locals.email,
+  azi,
+  await notaZi(env.DB, Astro.locals.email, azi)
+);
 ---
 
 <Base title="Azi · Notițe" zi={azi}>
