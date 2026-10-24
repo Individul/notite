@@ -24,6 +24,13 @@ export function ziValida(s: string): boolean {
   return d.getUTCFullYear() === a && d.getUTCMonth() === l - 1 && d.getUTCDate() === z;
 }
 
+// Poate primi o sarcina nebifata mutata? Doar azi si zilele viitoare. O zi trecuta nu: la urmatoarea
+// deschidere a zilei de azi, reportarea (reporteazaSarcini) aduce inapoi tot ce e nebifat in zilele
+// trecute, deci sarcina s-ar intoarce singura, iar mutarea ar parea ca nu s-a facut.
+export function ziPrimesteSarcini(zi: string, azi: string): boolean {
+  return zi >= azi;
+}
+
 // Ziua la `delta` zile distanta, calculata pe UTC (zilele din URL nu au fus).
 export function ziVecina(data: string, delta: number): string {
   const [a, l, z] = data.split("-").map(Number) as [number, number, number];

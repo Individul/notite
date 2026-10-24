@@ -4,7 +4,7 @@
 // ziua de pe care pleci (ca s-o blocheze) si ce sa faca la alegere.
 
 import { grilaLunii, lunaZilei, ZILE_SAPTAMANA } from "../lib/calendar";
-import { aziChisinau, ziVecina } from "../lib/data";
+import { aziChisinau, ziPrimesteSarcini, ziVecina } from "../lib/data";
 
 let deschis: HTMLElement | null = null;
 
@@ -82,6 +82,11 @@ export function deschideMutare(ancora: HTMLElement, ziCurenta: string | null, la
         b.classList.add("blocata");
         b.disabled = true;
         b.title = "Ziua de pe care pleci";
+      } else if (!ziPrimesteSarcini(z.data, azi)) {
+        // Zilele trecute: acolo sarcina nebifata s-ar intoarce singura azi (vezi ziPrimesteSarcini).
+        b.classList.add("trecuta");
+        b.disabled = true;
+        b.title = "Zi trecută: sarcina nebifată s-ar întoarce azi";
       }
       grila.appendChild(b);
     }

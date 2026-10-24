@@ -10,7 +10,7 @@ import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { citesteJson, eroare, json } from "../../../../lib/api";
 import { actualizeazaNota, citesteNota, notaZi } from "../../../../lib/db";
-import { ziValida } from "../../../../lib/data";
+import { aziChisinau, ziPrimesteSarcini, ziValida } from "../../../../lib/data";
 import { adaugaLaCapat, sarcinaNebifata, scoateLinia } from "../../../../lib/sarcini";
 
 export const POST: APIRoute = async ({ params, request, locals }) => {
@@ -22,6 +22,9 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   if (typeof d.linie !== "number" || !Number.isInteger(d.linie) || d.linie < 0) return eroare(400, "Lipsește linia.");
   if (typeof d.text !== "string" || !sarcinaNebifata(d.text)) return eroare(400, "Linia nu e o sarcină nebifată.");
   if (typeof d.zi !== "string" || !ziValida(d.zi)) return eroare(400, "Zi invalidă.");
+  if (!ziPrimesteSarcini(d.zi, aziChisinau())) {
+    return eroare(400, "Pe o zi trecută sarcina nebifată s-ar întoarce singură azi. Alege azi sau o zi viitoare.");
+  }
   if (typeof d.baza !== "string" || !d.baza) return eroare(400, "Lipsește baza (actualizat_la).");
 
   const sursa = await citesteNota(env.DB, locals.email, id);

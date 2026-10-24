@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aziChisinau, etichetaZi, fmtZi, parseDbDate, ziValida, ziVecina } from "./data";
+import { aziChisinau, etichetaZi, fmtZi, parseDbDate, ziPrimesteSarcini, ziValida, ziVecina } from "./data";
 
 describe("aziChisinau", () => {
   it("trece in ziua urmatoare la 21:00 UTC (vara, UTC+3)", () => {
@@ -53,5 +53,15 @@ describe("parseDbDate", () => {
     expect(parseDbDate("2026-09-07 10:00:00")?.toISOString()).toBe("2026-09-07T10:00:00.000Z");
     expect(parseDbDate(null)).toBeNull();
     expect(parseDbDate("nimic")).toBeNull();
+  });
+});
+
+describe("ziPrimesteSarcini", () => {
+  it("azi si zilele viitoare primesc o sarcina mutata; cele trecute nu, fiindca reportarea ar aduce-o inapoi", () => {
+    expect(ziPrimesteSarcini("2026-10-24", "2026-10-24")).toBe(true);
+    expect(ziPrimesteSarcini("2026-10-25", "2026-10-24")).toBe(true);
+    expect(ziPrimesteSarcini("2027-01-01", "2026-12-31")).toBe(true);
+    expect(ziPrimesteSarcini("2026-10-23", "2026-10-24")).toBe(false);
+    expect(ziPrimesteSarcini("2025-12-31", "2026-01-01")).toBe(false);
   });
 });
